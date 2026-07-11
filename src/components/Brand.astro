@@ -1,16 +1,18 @@
 ---
+import { SITE } from '../config';
+
 interface Props {
   compact?: boolean;
 }
 const { compact = false } = Astro.props;
 ---
 
-<a href="/" class:list={["brand", { compact }]} aria-label="The 420 Lobby Money and Food Hacks home">
+<a href="/" class:list={["brand", { compact }]} aria-label={`${SITE.name} ${SITE.productName} home`}>
   <span class="brand-mark" aria-hidden="true">
-    <span>420</span>
+    <span>{SITE.brandMark}</span>
   </span>
   <span class="brand-copy">
-    <strong>The 420 Lobby</strong>
-    <small>Money &amp; Food Hacks</small>
+    <strong>{SITE.name}</strong>
+    <small>{SITE.productName}</small>
   </span>
 </a>
