@@ -15,7 +15,11 @@
 .desk-picker-new { margin-top: auto; min-height: 2.8rem; border: 1px solid rgba(183,255,60,.25); border-radius: .5rem; background: var(--lime-soft); color: var(--lime); cursor: pointer; font: 750 .62rem/1 var(--mono); text-transform: uppercase; }
 .desk-picker-results { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 1rem; }
 .desk-picker-result-head { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .7rem; color: var(--muted); font: 650 .6rem/1 var(--mono); text-transform: uppercase; }
-.desk-method-list { display: grid; min-height: 0; gap: .55rem; overflow-y: auto; padding-right: .2rem; }
+.desk-method-list { display: grid; min-height: 0; gap: 1rem; overflow-y: auto; padding-right: .2rem; }
+.desk-method-group { display: grid; gap: .55rem; }
+.desk-method-group-title { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line-soft); padding: .1rem .15rem .55rem; color: var(--muted); font: 750 .58rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.desk-method-group-title b { color: var(--muted-2); font-size: .56rem; }
+.desk-method-group-list { display: grid; gap: .55rem; }
 .desk-method-option { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: .85rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--panel); color: inherit; padding: .9rem; cursor: pointer; text-align: left; transition: border-color .18s,transform .18s,background .18s; }
 .desk-method-option:hover { transform: translateY(-2px); border-color: rgba(183,255,60,.3); background: var(--panel-2); }
 .method-status-dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--lime); box-shadow: 0 0 9px rgba(183,255,60,.5); }
@@ -63,6 +67,8 @@ body.desk-modal-open { overflow: hidden; }
   .desk-field-wide { grid-column: auto; }
   .desk-category-picker { grid-template-columns: 1fr; }
   .desk-control-grid { grid-template-columns: repeat(2,1fr); }
+  .desk-expiry-control { grid-template-columns: 1fr 1fr; }
+  .desk-expiry-control label { grid-column: 1/-1; }
   .desk-savebar { align-items: stretch; flex-direction: column; }
   .desk-modal-backdrop { align-items: end; padding: 0; }
   .desk-picker { width: 100%; max-height: 94vh; border-radius: 1rem 1rem 0 0; }
