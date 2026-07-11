@@ -21,13 +21,7 @@ export default {
         readStatusDocument(),
       ]);
 
-      const registeredIds = new Set(Object.keys(statusDoc.entries));
-      const registeredFiles = files.filter((file) => {
-        const id = file.name.replace(/\.mdx?$/i, '');
-        return registeredIds.has(id);
-      });
-
-      const guides = await Promise.all(registeredFiles.map(async (file) => {
+      const parsedGuides = await Promise.all(files.map(async (file) => {
         const raw = await readRepoFile(`src/content/hacks/${file.name}`);
         const id = file.name.replace(/\.mdx?$/i, '');
         const guide = parseGuideFile(id, raw.content);
@@ -37,6 +31,8 @@ export default {
           live: normalizeStatus(statusDoc.entries[id]),
         };
       }));
+
+      const guides = parsedGuides.filter((guide) => guide.managed);
 
       guides.sort((a, b) => {
         const rank = { active: 0, paused: 1, expired: 2 };
