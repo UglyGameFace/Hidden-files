@@ -87,3 +87,55 @@ npm run preview
 ```
 
 The production site is generated in `dist/`.
+
+## Private Deal Desk
+
+The private control page is available at:
+
+```text
+/deal-desk
+```
+
+It uses a dedicated custom picker rather than a native browser dropdown. Methods are grouped into Active, Expiring Soon, Paused, and Expired views.
+
+### What changes immediately
+
+The following actions update `src/data/deal-status.json` through a secure Vercel Function and affect the public site immediately:
+
+- Verify now
+- Extend by 1, 6, or 24 hours
+- Pause
+- Expire now
+- Reactivate by verifying or extending
+
+Status-only commits skip a full Vercel rebuild. The public library and guide pages read the latest status through `/api/deal-status`.
+
+### What triggers a rebuild
+
+Editing a method title, description, category, badge, keywords, featured state, draft state, or Markdown body updates the guide file in GitHub. Vercel then rebuilds the static guide pages automatically.
+
+### Required Vercel variables
+
+Add these under **Project → Settings → Environment Variables**:
+
+```env
+DEAL_DESK_PASSWORD=use-a-long-private-password
+DEAL_DESK_SESSION_SECRET=use-a-separate-random-secret
+GITHUB_TOKEN=your-fine-grained-github-token
+```
+
+The GitHub token should be fine-grained, limited to this repository, and grant only:
+
+```text
+Repository permissions → Contents → Read and write
+```
+
+Vercel normally supplies the repository owner and name. These optional variables can override detection after a repository rename:
+
+```env
+GITHUB_REPO_OWNER=UglyGameFace
+GITHUB_REPO_NAME=Hidden-files
+GITHUB_BRANCH=main
+```
+
+Never put the password or GitHub token in a `PUBLIC_` variable. Variables prefixed with `PUBLIC_` are exposed to browser code.
