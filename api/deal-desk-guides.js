@@ -21,7 +21,13 @@ export default {
         readStatusDocument(),
       ]);
 
-      const guides = await Promise.all(files.map(async (file) => {
+      const registeredIds = new Set(Object.keys(statusDoc.entries));
+      const registeredFiles = files.filter((file) => {
+        const id = file.name.replace(/\.mdx?$/i, '');
+        return registeredIds.has(id);
+      });
+
+      const guides = await Promise.all(registeredFiles.map(async (file) => {
         const raw = await readRepoFile(`src/content/hacks/${file.name}`);
         const id = file.name.replace(/\.mdx?$/i, '');
         const guide = parseGuideFile(id, raw.content);
