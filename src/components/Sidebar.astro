@@ -1,0 +1,45 @@
+---
+import Brand from './Brand.astro';
+import Icon from './Icon.astro';
+import { CATEGORIES, SITE, type CategoryKey } from '../config';
+
+interface Props {
+  activeCategory?: CategoryKey | 'all';
+}
+const { activeCategory = 'all' } = Astro.props;
+---
+
+<aside class="site-sidebar" aria-label="Primary navigation">
+  <div class="sidebar-brand-wrap"><Brand /></div>
+
+  <nav class="sidebar-nav">
+    <p class="sidebar-section-label">Browse</p>
+    <a class:list={['sidebar-link', { active: activeCategory === 'all' }]} href="/">
+      <span class="sidebar-icon"><Icon name="home" /></span>
+      <span class="sidebar-link-copy"><strong>All Hacks</strong><small>Complete library</small></span>
+      <span class="rail-label">All</span>
+    </a>
+
+    {Object.entries(CATEGORIES).map(([key, category]) => (
+      <a
+        class:list={['sidebar-link', `accent-${category.accent}`, { active: activeCategory === key }]}
+        href={`/?category=${key}#library`}
+      >
+        <span class="sidebar-icon"><Icon name={category.icon} /></span>
+        <span class="sidebar-link-copy"><strong>{category.label}</strong><small>{category.description}</small></span>
+        <span class="rail-label">{category.shortLabel}</span>
+      </a>
+    ))}
+  </nav>
+
+  <div class="sidebar-promo">
+    <div class="promo-status"><span></span> Community online</div>
+    <strong>Get the newest plays first.</strong>
+    <p>Join {SITE.name} for live finds, updates, and member discussion.</p>
+    <a href={SITE.discordInvite} target="_blank" rel="noreferrer" class="discord-button sidebar-discord">
+      <Icon name="discord" />
+      <span class="desktop-only">Join Discord</span>
+      <span class="sr-only tablet-only">Join Discord</span>
+    </a>
+  </div>
+</aside>

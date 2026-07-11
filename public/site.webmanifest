@@ -1,0 +1,10 @@
+{
+  "name": "The 420 Lobby Money & Food Hacks",
+  "short_name": "420 Hacks",
+  "description": "Cashback, food, and retail guides from The 420 Lobby.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090b0e",
+  "theme_color": "#090b0e",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

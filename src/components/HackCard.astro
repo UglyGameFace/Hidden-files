@@ -1,0 +1,36 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Icon from './Icon.astro';
+import { CATEGORIES } from '../config';
+
+interface Props {
+  hack: CollectionEntry<'hacks'>;
+}
+const { hack } = Astro.props;
+const category = CATEGORIES[hack.data.category];
+const searchable = [hack.data.title, hack.data.description, category.label, ...hack.data.keywords]
+  .join(' ')
+  .toLowerCase();
+---
+
+<article
+  class={`hack-card accent-${category.accent}`}
+  data-hack-card
+  data-category={hack.data.category}
+  data-search={searchable}
+>
+  <div class="hack-card-topline">
+    <span class="category-chip"><Icon name={category.icon} /> {category.label}</span>
+    {hack.data.badge && <span class="status-chip">{hack.data.badge}</span>}
+  </div>
+  <div class="hack-card-body">
+    <h3>{hack.data.title}</h3>
+    <p>{hack.data.description}</p>
+  </div>
+  <div class="hack-card-footer">
+    <span><Icon name="clock" /> {hack.data.readTime}</span>
+    <a href={`/guides/${hack.id}/`} aria-label={`View guide: ${hack.data.title}`}>
+      View Guide <Icon name="arrow" />
+    </a>
+  </div>
+</article>

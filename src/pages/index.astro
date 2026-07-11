@@ -1,0 +1,181 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HackCard from '../components/HackCard.astro';
+import Icon from '../components/Icon.astro';
+import { CATEGORIES, SITE } from '../config';
+
+const hacks = (await getCollection('hacks', ({ data }) => !data.draft)).sort(
+  (a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order,
+);
+const featured = hacks.filter((hack) => hack.data.featured).slice(0, 3);
+const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((counts, key) => {
+  counts[key] = hacks.filter((hack) => hack.data.category === key).length;
+  return counts;
+}, {});
+---
+
+<BaseLayout>
+  <section class="hero-section">
+    <div class="hero-grid-overlay"></div>
+    <div class="hero-content">
+      <div class="eyebrow"><span></span> Field guides from {SITE.name}</div>
+      <h1>Spend smarter.<br /><em>Eat better.</em> Miss fewer deals.</h1>
+      <p class="hero-lead">A fast, no-fluff library of practical cashback, food, and retail plays built for the {SITE.name} community.</p>
+      <div class="hero-actions">
+        <a class="primary-cta" href="#library"><Icon name="book" /> Browse all hacks</a>
+        <a class="secondary-cta" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join The 420 Lobby</a>
+      </div>
+      <div class="hero-trust">
+        <span><Icon name="shield" /> Responsible methods</span>
+        <span><Icon name="spark" /> Community updates</span>
+        <span><Icon name="clock" /> Quick-read guides</span>
+      </div>
+    </div>
+
+    <div class="hero-console" aria-label="Guide library summary">
+      <div class="console-bar"><span></span><span></span><span></span><small>LOBBY_INTEL.exe</small></div>
+      <div class="console-body">
+        <p><span class="console-prompt">$</span> loading guide index...</p>
+        <p><span class="console-ok">✓</span> {hacks.length} active field guides</p>
+        <p><span class="console-ok">✓</span> 3 tactical categories</p>
+        <p><span class="console-ok">✓</span> static + fast by default</p>
+        <div class="console-divider"></div>
+        <p class="console-dim">STATUS <span>READY</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="category-strip" aria-label="Guide categories">
+    {Object.entries(CATEGORIES).map(([key, category]) => (
+      <a href={`/?category=${key}#library`} class={`category-summary accent-${category.accent}`}>
+        <span class="category-summary-icon"><Icon name={category.icon} /></span>
+        <span><strong>{category.label}</strong><small>{categoryCounts[key]} guides available</small></span>
+        <Icon name="chevron" class="category-chevron" />
+      </a>
+    ))}
+  </section>
+
+  {featured.length > 0 && (
+    <section class="featured-section">
+      <div class="section-heading">
+        <div><span class="kicker">Start here</span><h2>Featured plays</h2></div>
+        <p>The clearest, highest-utility guides for new members.</p>
+      </div>
+      <div class="featured-grid">
+        {featured.map((hack) => <HackCard hack={hack} />)}
+      </div>
+    </section>
+  )}
+
+  <section id="library" class="library-section">
+    <div class="section-heading library-heading">
+      <div><span class="kicker">Guide database</span><h2>All money &amp; food hacks</h2></div>
+      <p>Search by store, app, method, or category.</p>
+    </div>
+
+    <div class="filter-panel">
+      <label class="search-field" for="hack-search">
+        <Icon name="search" />
+        <input id="hack-search" type="search" placeholder="Search guides, stores, apps..." autocomplete="off" data-search-input />
+        <kbd>/</kbd>
+      </label>
+      <div class="filter-buttons" role="group" aria-label="Filter guides by category">
+        <button type="button" class="active" data-filter="all">All <span>{hacks.length}</span></button>
+        {Object.entries(CATEGORIES).map(([key, category]) => (
+          <button type="button" data-filter={key}>{category.label} <span>{categoryCounts[key]}</span></button>
+        ))}
+      </div>
+      <div class="result-status" aria-live="polite"><span data-result-count>{hacks.length}</span> guides shown</div>
+    </div>
+
+    <div class="hack-grid" data-card-grid>
+      {hacks.map((hack) => <HackCard hack={hack} />)}
+    </div>
+
+    <div class="empty-state" data-empty-state hidden>
+      <span><Icon name="search" /></span>
+      <h3>No matching field guide</h3>
+      <p>Try a broader keyword or clear the category filter.</p>
+      <button type="button" data-clear-search>Reset search</button>
+    </div>
+  </section>
+
+  <section class="discord-banner">
+    <div>
+      <span class="kicker">The guide is step one</span>
+      <h2>See live finds inside The 420 Lobby.</h2>
+      <p>Use the website for clean evergreen instructions. Use Discord for fresh opportunities, member reports, and updates.</p>
+    </div>
+    <a href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join the community <Icon name="arrow" /></a>
+  </section>
+</BaseLayout>
+
+<script>
+  const input = document.querySelector('[data-search-input]');
+  const cards = [...document.querySelectorAll('[data-hack-card]')];
+  const filterButtons = [...document.querySelectorAll('[data-filter]')];
+  const count = document.querySelector('[data-result-count]');
+  const empty = document.querySelector('[data-empty-state]');
+  const clear = document.querySelector('[data-clear-search]');
+  let activeFilter = 'all';
+
+  const params = new URLSearchParams(window.location.search);
+  const initialCategory = params.get('category');
+  if (initialCategory && filterButtons.some((button) => button.getAttribute('data-filter') === initialCategory)) {
+    activeFilter = initialCategory;
+  }
+
+  function applyFilters() {
+    const query = input instanceof HTMLInputElement ? input.value.trim().toLowerCase() : '';
+    let visible = 0;
+    cards.forEach((card) => {
+      if (!(card instanceof HTMLElement)) return;
+      const matchesCategory = activeFilter === 'all' || card.dataset.category === activeFilter;
+      const matchesSearch = !query || card.dataset.search?.includes(query);
+      const show = Boolean(matchesCategory && matchesSearch);
+      card.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (count) count.textContent = String(visible);
+    if (empty instanceof HTMLElement) empty.hidden = visible !== 0;
+    filterButtons.forEach((button) => {
+      button.classList.toggle('active', button.getAttribute('data-filter') === activeFilter);
+      button.setAttribute('aria-pressed', String(button.getAttribute('data-filter') === activeFilter));
+    });
+  }
+
+  filterButtons.forEach((button) => button.addEventListener('click', () => {
+    activeFilter = button.getAttribute('data-filter') ?? 'all';
+    const nextUrl = new URL(window.location.href);
+    if (activeFilter === 'all') nextUrl.searchParams.delete('category');
+    else nextUrl.searchParams.set('category', activeFilter);
+    history.replaceState({}, '', nextUrl);
+    applyFilters();
+  }));
+
+  input?.addEventListener('input', applyFilters);
+  clear?.addEventListener('click', () => {
+    if (input instanceof HTMLInputElement) input.value = '';
+    activeFilter = 'all';
+    history.replaceState({}, '', window.location.pathname + '#library');
+    applyFilters();
+    if (input instanceof HTMLInputElement) input.focus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const target = event.target;
+    const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+    if (event.key === '/' && !typing) {
+      event.preventDefault();
+      if (input instanceof HTMLInputElement) input.focus();
+    }
+    if (event.key === 'Escape' && input instanceof HTMLInputElement && document.activeElement === input) {
+      input.value = '';
+      applyFilters();
+      input.blur();
+    }
+  });
+
+  applyFilters();
+</script>
