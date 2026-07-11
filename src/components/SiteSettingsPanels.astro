@@ -1,0 +1,203 @@
+<form class="cc-settings-form" data-site-settings-form>
+  <section class="cc-panel" data-control-panel="homepage" hidden>
+    <header class="cc-panel-header">
+      <div><span>Homepage</span><h2>First impression</h2><p>Edit the hero, terminal, library heading, and section visibility.</p></div>
+      <button type="button" data-cc-open-preview>Preview changes</button>
+    </header>
+
+    <div class="cc-form-grid">
+      <label class="cc-field cc-wide"><span>Eyebrow</span><input data-setting="homepage.eyebrow" maxlength="90" /></label>
+      <label class="cc-field"><span>Headline — first line</span><input data-setting="homepage.headlinePrefix" maxlength="70" /></label>
+      <label class="cc-field"><span>Headline — highlighted line</span><input data-setting="homepage.headlineHighlight" maxlength="70" /></label>
+      <label class="cc-field cc-wide"><span>Headline — final line</span><input data-setting="homepage.headlineSuffix" maxlength="70" /></label>
+      <label class="cc-field cc-wide"><span>Hero description</span><textarea data-setting="homepage.lead" rows="4" maxlength="320"></textarea></label>
+      <label class="cc-field"><span>Primary button</span><input data-setting="homepage.primaryCtaLabel" maxlength="36" /></label>
+      <label class="cc-field"><span>Discord button</span><input data-setting="homepage.secondaryCtaLabel" maxlength="42" /></label>
+
+      <fieldset class="cc-field cc-wide cc-trust-editor">
+        <legend>Trust strip</legend>
+        <div>
+          <input data-setting="homepage.trustItems.0" maxlength="48" aria-label="First trust item" />
+          <input data-setting="homepage.trustItems.1" maxlength="48" aria-label="Second trust item" />
+          <input data-setting="homepage.trustItems.2" maxlength="48" aria-label="Third trust item" />
+        </div>
+      </fieldset>
+
+      <label class="cc-field"><span>Terminal title</span><input data-setting="homepage.terminalTitle" maxlength="40" /></label>
+      <label class="cc-field"><span>Terminal status</span><input data-setting="homepage.terminalStatus" maxlength="20" /></label>
+      <label class="cc-field"><span>Library kicker</span><input data-setting="homepage.libraryKicker" maxlength="48" /></label>
+      <label class="cc-field"><span>Library heading</span><input data-setting="homepage.libraryTitle" maxlength="90" /></label>
+      <label class="cc-field cc-wide"><span>Library description</span><input data-setting="homepage.libraryDescription" maxlength="180" /></label>
+      <label class="cc-field"><span>Featured minimum</span><input type="number" min="1" max="12" inputmode="numeric" data-setting="homepage.featuredMinimum" /></label>
+    </div>
+
+    <div class="cc-visibility-grid">
+      <button type="button" class="cc-toggle-card" data-setting-toggle="homepage.showTerminal"><i></i><span><strong>Terminal panel</strong><small>Show Lobby Intel status</small></span></button>
+      <button type="button" class="cc-toggle-card" data-setting-toggle="homepage.showCategories"><i></i><span><strong>Category strip</strong><small>Show quick category links</small></span></button>
+      <button type="button" class="cc-toggle-card" data-setting-toggle="homepage.showFeatured"><i></i><span><strong>Featured section</strong><small>Show when minimum is met</small></span></button>
+      <button type="button" class="cc-toggle-card" data-setting-toggle="homepage.showSearch"><i></i><span><strong>Search and filters</strong><small>Show library controls</small></span></button>
+      <button type="button" class="cc-toggle-card" data-setting-toggle="homepage.showDiscordBanner"><i></i><span><strong>Discord banner</strong><small>Show final community CTA</small></span></button>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="branding" hidden>
+    <header class="cc-panel-header">
+      <div><span>Branding</span><h2>Your identity</h2><p>Change the name and labels used across the header, sidebar, footer, and sharing metadata.</p></div>
+      <button type="button" data-cc-open-preview>Preview changes</button>
+    </header>
+    <div class="cc-form-grid">
+      <label class="cc-field"><span>Community name</span><input data-setting="branding.name" maxlength="64" /></label>
+      <label class="cc-field"><span>Site product name</span><input data-setting="branding.productName" maxlength="64" /></label>
+      <label class="cc-field"><span>Brand mark</span><input data-setting="branding.brandMark" maxlength="8" /></label>
+      <label class="cc-field"><span>Short tagline</span><input data-setting="branding.tagline" maxlength="140" /></label>
+    </div>
+    <div class="cc-brand-sample">
+      <span data-preview-brand-mark>420</span>
+      <div><strong data-preview-brand-name>The 420 Lobby</strong><small data-preview-product-name>Money &amp; Food Hacks</small></div>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="navigation" hidden>
+    <header class="cc-panel-header">
+      <div><span>Navigation</span><h2>Browse labels</h2><p>Edit the names members see in the desktop sidebar and mobile menu.</p></div>
+    </header>
+    <div class="cc-form-grid">
+      <label class="cc-field"><span>Navigation section label</span><input data-setting="navigation.browseLabel" maxlength="24" /></label>
+      <label class="cc-field"><span>All-guides label</span><input data-setting="navigation.allHacksLabel" maxlength="32" /></label>
+      <label class="cc-field cc-wide"><span>All-guides description</span><input data-setting="navigation.allHacksDescription" maxlength="80" /></label>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="categories" hidden>
+    <header class="cc-panel-header">
+      <div><span>Categories</span><h2>Library organization</h2><p>Rename, describe, hide, or reorder the three stable method categories.</p></div>
+    </header>
+
+    <div class="cc-category-stack">
+      <article class="cc-category-editor" data-category-editor="cashback-loops">
+        <header><span>↻</span><div><strong>Cashback category</strong><small>Key: cashback-loops</small></div><button type="button" data-setting-toggle="categories.cashback-loops.visible">Visible</button></header>
+        <div class="cc-form-grid">
+          <label class="cc-field"><span>Full label</span><input data-setting="categories.cashback-loops.label" maxlength="48" /></label>
+          <label class="cc-field"><span>Short label</span><input data-setting="categories.cashback-loops.shortLabel" maxlength="20" /></label>
+          <label class="cc-field cc-wide"><span>Description</span><textarea data-setting="categories.cashback-loops.description" rows="2" maxlength="180"></textarea></label>
+          <label class="cc-field"><span>Order</span><input type="number" min="1" max="99" data-setting="categories.cashback-loops.order" /></label>
+        </div>
+      </article>
+
+      <article class="cc-category-editor" data-category-editor="food-hacks">
+        <header><span>⌁</span><div><strong>Food category</strong><small>Key: food-hacks</small></div><button type="button" data-setting-toggle="categories.food-hacks.visible">Visible</button></header>
+        <div class="cc-form-grid">
+          <label class="cc-field"><span>Full label</span><input data-setting="categories.food-hacks.label" maxlength="48" /></label>
+          <label class="cc-field"><span>Short label</span><input data-setting="categories.food-hacks.shortLabel" maxlength="20" /></label>
+          <label class="cc-field cc-wide"><span>Description</span><textarea data-setting="categories.food-hacks.description" rows="2" maxlength="180"></textarea></label>
+          <label class="cc-field"><span>Order</span><input type="number" min="1" max="99" data-setting="categories.food-hacks.order" /></label>
+        </div>
+      </article>
+
+      <article class="cc-category-editor" data-category-editor="retail-deals">
+        <header><span>◇</span><div><strong>Retail category</strong><small>Key: retail-deals</small></div><button type="button" data-setting-toggle="categories.retail-deals.visible">Visible</button></header>
+        <div class="cc-form-grid">
+          <label class="cc-field"><span>Full label</span><input data-setting="categories.retail-deals.label" maxlength="48" /></label>
+          <label class="cc-field"><span>Short label</span><input data-setting="categories.retail-deals.shortLabel" maxlength="20" /></label>
+          <label class="cc-field cc-wide"><span>Description</span><textarea data-setting="categories.retail-deals.description" rows="2" maxlength="180"></textarea></label>
+          <label class="cc-field"><span>Order</span><input type="number" min="1" max="99" data-setting="categories.retail-deals.order" /></label>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="community" hidden>
+    <header class="cc-panel-header">
+      <div><span>Discord promotion</span><h2>Community calls to action</h2><p>Edit the invite and every Discord promo without touching environment variables or code.</p></div>
+      <button type="button" data-cc-open-preview>Preview changes</button>
+    </header>
+    <div class="cc-form-grid">
+      <label class="cc-field cc-wide"><span>Permanent Discord invite <small>Leave blank to use the Vercel environment variable</small></span><input type="url" data-setting="discord.inviteUrl" placeholder="https://discord.gg/..." /></label>
+      <label class="cc-field"><span>Sidebar status</span><input data-setting="discord.sidebarStatus" maxlength="42" /></label>
+      <label class="cc-field"><span>Sidebar heading</span><input data-setting="discord.sidebarTitle" maxlength="90" /></label>
+      <label class="cc-field cc-wide"><span>Sidebar description</span><textarea data-setting="discord.sidebarDescription" rows="3" maxlength="220"></textarea></label>
+      <label class="cc-field"><span>Sidebar button</span><input data-setting="discord.sidebarButtonLabel" maxlength="36" /></label>
+      <label class="cc-field"><span>Mobile drawer description</span><input data-setting="discord.mobileDescription" maxlength="160" /></label>
+      <label class="cc-field"><span>Banner kicker</span><input data-setting="discord.bannerKicker" maxlength="48" /></label>
+      <label class="cc-field"><span>Banner heading</span><input data-setting="discord.bannerTitle" maxlength="110" /></label>
+      <label class="cc-field cc-wide"><span>Banner description</span><textarea data-setting="discord.bannerDescription" rows="3" maxlength="260"></textarea></label>
+      <label class="cc-field"><span>Banner button</span><input data-setting="discord.bannerButtonLabel" maxlength="42" /></label>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="footer-seo" hidden>
+    <header class="cc-panel-header">
+      <div><span>Footer &amp; SEO</span><h2>Finishing details</h2><p>Control the public footer and how the website appears in search results and shared links.</p></div>
+    </header>
+    <div class="cc-subsection-title"><span>Footer</span></div>
+    <div class="cc-form-grid">
+      <label class="cc-field cc-wide"><span>Footer description</span><textarea data-setting="footer.description" rows="3" maxlength="260"></textarea></label>
+      <label class="cc-field"><span>Footer Discord button</span><input data-setting="footer.discordButtonLabel" maxlength="36" /></label>
+    </div>
+    <div class="cc-subsection-title"><span>Search and sharing</span></div>
+    <div class="cc-form-grid">
+      <label class="cc-field cc-wide"><span>Browser and search title</span><input data-setting="seo.title" maxlength="70" /></label>
+      <label class="cc-field cc-wide"><span>Search description</span><textarea data-setting="seo.description" rows="3" maxlength="180"></textarea></label>
+      <label class="cc-field cc-wide"><span>Share image path</span><input data-setting="seo.shareImage" maxlength="180" placeholder="/og-card.svg" /></label>
+    </div>
+  </section>
+
+  <section class="cc-panel" data-control-panel="appearance" hidden>
+    <header class="cc-panel-header">
+      <div><span>Appearance</span><h2>Safe style controls</h2><p>Choose from tested presets so the site stays readable on phones, tablets, and desktops.</p></div>
+      <button type="button" data-cc-open-preview>Preview changes</button>
+    </header>
+
+    <fieldset class="cc-choice-field">
+      <legend>Electric highlight</legend>
+      <div class="cc-choice-grid cc-color-grid">
+        <button type="button" data-setting-choice="theme.accentPreset" data-choice-value="lime"><i style="--choice:#b7ff3c"></i><strong>Lobby Lime</strong><small>Current tactical look</small></button>
+        <button type="button" data-setting-choice="theme.accentPreset" data-choice-value="cyan"><i style="--choice:#55dff4"></i><strong>Signal Cyan</strong><small>Cool technical look</small></button>
+        <button type="button" data-setting-choice="theme.accentPreset" data-choice-value="amber"><i style="--choice:#ffbd4a"></i><strong>Alert Amber</strong><small>Warm deal-hunting look</small></button>
+        <button type="button" data-setting-choice="theme.accentPreset" data-choice-value="violet"><i style="--choice:#a78bfa"></i><strong>Discord Violet</strong><small>Community-focused look</small></button>
+      </div>
+    </fieldset>
+
+    <fieldset class="cc-choice-field">
+      <legend>Page density</legend>
+      <div class="cc-choice-grid">
+        <button type="button" data-setting-choice="theme.density" data-choice-value="compact"><strong>Compact</strong><small>Less scrolling on phones</small></button>
+        <button type="button" data-setting-choice="theme.density" data-choice-value="comfortable"><strong>Comfortable</strong><small>Balanced spacing</small></button>
+        <button type="button" data-setting-choice="theme.density" data-choice-value="spacious"><strong>Spacious</strong><small>Roomier desktop presentation</small></button>
+      </div>
+    </fieldset>
+  </section>
+</form>
+
+<div class="cc-preview-backdrop" data-cc-preview-backdrop hidden>
+  <section class="cc-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cc-preview-title">
+    <header>
+      <div><span>Live draft preview</span><h2 id="cc-preview-title">Homepage preview</h2></div>
+      <button type="button" data-cc-close-preview aria-label="Close preview">×</button>
+    </header>
+    <div class="cc-device-switcher" role="group" aria-label="Preview device">
+      <button type="button" data-preview-device="phone" class="active">Phone</button>
+      <button type="button" data-preview-device="tablet">Tablet</button>
+      <button type="button" data-preview-device="desktop">Desktop</button>
+    </div>
+    <div class="cc-preview-stage">
+      <div class="cc-preview-device device-phone" data-preview-device-frame>
+        <div class="cc-preview-page">
+          <div class="cc-preview-nav"><span data-preview-brand-mark>420</span><div><strong data-preview-brand-name>The 420 Lobby</strong><small data-preview-product-name>Money &amp; Food Hacks</small></div><b>☰</b></div>
+          <section class="cc-preview-hero">
+            <small data-preview-eyebrow>Field guides from The 420 Lobby</small>
+            <h1><span data-preview-headline-prefix>Spend smarter.</span><em data-preview-headline-highlight>Eat better.</em><span data-preview-headline-suffix>Miss fewer deals.</span></h1>
+            <p data-preview-lead></p>
+            <div><button data-preview-primary>Browse all hacks</button><button data-preview-secondary>Join The 420 Lobby</button></div>
+            <article data-preview-terminal><i></i><strong>1 ACTIVE METHOD</strong><small data-preview-terminal-status>SYSTEM READY</small></article>
+          </section>
+          <section class="cc-preview-categories" data-preview-categories></section>
+          <section class="cc-preview-library"><small data-preview-library-kicker>Guide database</small><h2 data-preview-library-title>All money &amp; food hacks</h2><p data-preview-library-description></p><article><span>FOOD HACKS</span><strong>Example method card</strong><small>Live site methods remain unchanged until published.</small></article></section>
+          <section class="cc-preview-discord" data-preview-discord><small data-preview-banner-kicker></small><strong data-preview-banner-title></strong><button data-preview-banner-button></button></section>
+          <footer><strong data-preview-footer-name>The 420 Lobby</strong><small data-preview-footer-description></small></footer>
+        </div>
+      </div>
+    </div>
+    <footer><span>Preview updates instantly. Publishing still requires confirmation.</span><button type="button" data-cc-close-preview>Back to editor</button></footer>
+  </section>
+</div>

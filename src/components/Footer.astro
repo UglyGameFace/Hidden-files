@@ -1,16 +1,16 @@
 ---
 import Icon from './Icon.astro';
-import { SITE } from '../config';
+import { SITE, SITE_SETTINGS } from '../config';
 const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
   <div>
     <strong>{SITE.name}</strong>
-    <p>Community-tested money, food, and retail guides—organized without cluttering your Discord sidebar.</p>
+    <p>{SITE_SETTINGS.footer.description}</p>
   </div>
   <div class="footer-actions">
-    <a href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join Discord</a>
+    <a href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> {SITE_SETTINGS.footer.discordButtonLabel}</a>
     <span>© {year} {SITE.name}</span>
   </div>
 </footer>

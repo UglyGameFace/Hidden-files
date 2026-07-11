@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "branding": {
+    "name": "The 420 Lobby",
+    "productName": "Money & Food Hacks",
+    "brandMark": "420",
+    "tagline": "Spend smarter. Eat better. Miss fewer deals."
+  },
+  "homepage": {
+    "eyebrow": "Field guides from The 420 Lobby",
+    "headlinePrefix": "Spend smarter.",
+    "headlineHighlight": "Eat better.",
+    "headlineSuffix": "Miss fewer deals.",
+    "lead": "A fast, no-fluff library of practical cashback, food, and retail plays built for The 420 Lobby community.",
+    "primaryCtaLabel": "Browse all hacks",
+    "secondaryCtaLabel": "Join The 420 Lobby",
+    "trustItems": [
+      "Responsible methods",
+      "Community updates",
+      "Quick-read guides"
+    ],
+    "showTerminal": true,
+    "terminalTitle": "LOBBY_INTEL.exe",
+    "terminalStatus": "READY",
+    "showCategories": true,
+    "showFeatured": true,
+    "featuredMinimum": 3,
+    "libraryKicker": "Guide database",
+    "libraryTitle": "All money & food hacks",
+    "libraryDescription": "Search by store, app, method, or category.",
+    "showSearch": true,
+    "showDiscordBanner": true
+  },
+  "navigation": {
+    "browseLabel": "Browse",
+    "allHacksLabel": "All Hacks",
+    "allHacksDescription": "Complete library"
+  },
+  "categories": {
+    "cashback-loops": {
+      "label": "Cashback Loops",
+      "shortLabel": "Cashback",
+      "description": "Stack legitimate rewards without losing track of the math.",
+      "visible": true,
+      "order": 1
+    },
+    "food-hacks": {
+      "label": "Food Hacks",
+      "shortLabel": "Food",
+      "description": "Stretch restaurant and grocery budgets with repeatable plays.",
+      "visible": true,
+      "order": 2
+    },
+    "retail-deals": {
+      "label": "Retail Deals",
+      "shortLabel": "Retail",
+      "description": "Find, verify, and act on real markdowns and price drops.",
+      "visible": true,
+      "order": 3
+    }
+  },
+  "discord": {
+    "inviteUrl": "",
+    "sidebarStatus": "Community online",
+    "sidebarTitle": "Get the newest plays first.",
+    "sidebarDescription": "Join The 420 Lobby for live finds, updates, and member discussion.",
+    "sidebarButtonLabel": "Join Discord",
+    "mobileDescription": "Live finds, updates, and community discussion.",
+    "bannerKicker": "The guide is step one",
+    "bannerTitle": "See live finds inside The 420 Lobby.",
+    "bannerDescription": "Use the website for clean evergreen instructions. Use Discord for fresh opportunities, member reports, and updates.",
+    "bannerButtonLabel": "Join the community"
+  },
+  "footer": {
+    "description": "Community-tested money, food, and retail guides—organized without cluttering your Discord sidebar.",
+    "discordButtonLabel": "Join Discord"
+  },
+  "seo": {
+    "title": "Money & Food Hacks | The 420 Lobby",
+    "description": "Practical cashback, food, and retail deal guides from The 420 Lobby Discord community.",
+    "shareImage": "/og-card.svg"
+  },
+  "theme": {
+    "accentPreset": "lime",
+    "density": "compact"
+  }
+}
