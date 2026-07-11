@@ -3,68 +3,75 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HackCard from '../components/HackCard.astro';
 import Icon from '../components/Icon.astro';
-import { CATEGORIES, SITE } from '../config';
+import { CATEGORY_ENTRIES, CATEGORIES, SITE, SITE_SETTINGS } from '../config';
 
 const hacks = (await getCollection('hacks', ({ data }) => data.managed && !data.draft))
   .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order);
-const featured = hacks.filter((hack) => hack.data.featured).slice(0, 3);
+const featured = hacks.filter((hack) => hack.data.featured).slice(0, 12);
+const showFeatured = SITE_SETTINGS.homepage.showFeatured
+  && featured.length >= SITE_SETTINGS.homepage.featuredMinimum;
 const methodWord = hacks.length === 1 ? 'METHOD' : 'METHODS';
 const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((counts, key) => {
   counts[key] = hacks.filter((hack) => hack.data.category === key).length;
   return counts;
 }, {});
+const trustIcons = ['shield', 'spark', 'clock'];
 ---
 
 <BaseLayout>
   <section class="hero-section">
     <div class="hero-grid-overlay"></div>
     <div class="hero-content">
-      <div class="eyebrow"><span></span> Field guides from {SITE.name}</div>
-      <h1>Spend smarter.<br /><em>Eat better.</em> Miss fewer deals.</h1>
-      <p class="hero-lead">A fast, no-fluff library of practical cashback, food, and retail plays built for the {SITE.name} community.</p>
+      <div class="eyebrow"><span></span> {SITE_SETTINGS.homepage.eyebrow}</div>
+      <h1>{SITE_SETTINGS.homepage.headlinePrefix}<br /><em>{SITE_SETTINGS.homepage.headlineHighlight}</em> {SITE_SETTINGS.homepage.headlineSuffix}</h1>
+      <p class="hero-lead">{SITE_SETTINGS.homepage.lead}</p>
       <div class="hero-actions">
-        <a class="primary-cta" href="#library"><Icon name="book" /> Browse all hacks</a>
-        <a class="secondary-cta" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join The 420 Lobby</a>
+        <a class="primary-cta" href="#library"><Icon name="book" /> {SITE_SETTINGS.homepage.primaryCtaLabel}</a>
+        <a class="secondary-cta" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> {SITE_SETTINGS.homepage.secondaryCtaLabel}</a>
       </div>
       <div class="hero-trust">
-        <span><Icon name="shield" /> Responsible methods</span>
-        <span><Icon name="spark" /> Community updates</span>
-        <span><Icon name="clock" /> Quick-read guides</span>
+        {SITE_SETTINGS.homepage.trustItems.map((item, index) => (
+          <span><Icon name={trustIcons[index] ?? 'shield'} /> {item}</span>
+        ))}
       </div>
     </div>
 
-    <details class="hero-console" data-mobile-console>
-      <summary class="console-mobile-summary">
-        <span class="console-mobile-led" aria-hidden="true"></span>
-        <span class="console-mobile-copy">
-          <strong><span data-console-method-count>{hacks.length}</span> ACTIVE <span data-console-method-word>{methodWord}</span></strong>
-          <small>System ready · tap for details</small>
-        </span>
-        <b aria-hidden="true">⌄</b>
-      </summary>
-      <div class="console-bar"><span></span><span></span><span></span><small>LOBBY_INTEL.exe</small></div>
-      <div class="console-body">
-        <p><span class="console-prompt">$</span> loading guide index...</p>
-        <p><span class="console-ok">✓</span> {hacks.length} active field guides</p>
-        <p><span class="console-ok">✓</span> 3 tactical categories</p>
-        <p><span class="console-ok">✓</span> static + fast by default</p>
-        <div class="console-divider"></div>
-        <p class="console-dim">STATUS <span>READY</span></p>
-      </div>
-    </details>
+    {SITE_SETTINGS.homepage.showTerminal && (
+      <details class="hero-console" data-mobile-console>
+        <summary class="console-mobile-summary">
+          <span class="console-mobile-led" aria-hidden="true"></span>
+          <span class="console-mobile-copy">
+            <strong><span data-console-method-count>{hacks.length}</span> ACTIVE <span data-console-method-word>{methodWord}</span></strong>
+            <small>System {SITE_SETTINGS.homepage.terminalStatus.toLowerCase()} · tap for details</small>
+          </span>
+          <b aria-hidden="true">⌄</b>
+        </summary>
+        <div class="console-bar"><span></span><span></span><span></span><small>{SITE_SETTINGS.homepage.terminalTitle}</small></div>
+        <div class="console-body">
+          <p><span class="console-prompt">$</span> loading guide index...</p>
+          <p><span class="console-ok">✓</span> {hacks.length} active field guides</p>
+          <p><span class="console-ok">✓</span> {CATEGORY_ENTRIES.length} tactical categories</p>
+          <p><span class="console-ok">✓</span> static + fast by default</p>
+          <div class="console-divider"></div>
+          <p class="console-dim">STATUS <span>{SITE_SETTINGS.homepage.terminalStatus}</span></p>
+        </div>
+      </details>
+    )}
   </section>
 
-  <section class="category-strip" aria-label="Guide categories">
-    {Object.entries(CATEGORIES).map(([key, category]) => (
-      <a href={`/?category=${key}#library`} class={`category-summary accent-${category.accent}`}>
-        <span class="category-summary-icon"><Icon name={category.icon} /></span>
-        <span><strong>{category.label}</strong><small>{categoryCounts[key]} guides available</small></span>
-        <Icon name="chevron" class="category-chevron" />
-      </a>
-    ))}
-  </section>
+  {SITE_SETTINGS.homepage.showCategories && (
+    <section class="category-strip" aria-label="Guide categories">
+      {CATEGORY_ENTRIES.map(([key, category]) => (
+        <a href={`/?category=${key}#library`} class={`category-summary accent-${category.accent}`}>
+          <span class="category-summary-icon"><Icon name={category.icon} /></span>
+          <span><strong>{category.label}</strong><small>{categoryCounts[key]} guides available</small></span>
+          <Icon name="chevron" class="category-chevron" />
+        </a>
+      ))}
+    </section>
+  )}
 
-  {featured.length > 0 && (
+  {showFeatured && (
     <section class="featured-section">
       <div class="section-heading">
         <div><span class="kicker">Start here</span><h2>Featured plays</h2></div>
@@ -78,24 +85,26 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
 
   <section id="library" class="library-section">
     <div class="section-heading library-heading">
-      <div><span class="kicker">Guide database</span><h2>All money &amp; food hacks</h2></div>
-      <p>Search by store, app, method, or category.</p>
+      <div><span class="kicker">{SITE_SETTINGS.homepage.libraryKicker}</span><h2>{SITE_SETTINGS.homepage.libraryTitle}</h2></div>
+      <p>{SITE_SETTINGS.homepage.libraryDescription}</p>
     </div>
 
-    <div class="filter-panel">
-      <label class="search-field" for="hack-search">
-        <Icon name="search" />
-        <input id="hack-search" type="search" placeholder="Search guides, stores, apps..." autocomplete="off" data-search-input />
-        <kbd>/</kbd>
-      </label>
-      <div class="filter-buttons" role="group" aria-label="Filter guides by category">
-        <button type="button" class="active" data-filter="all">All <span>{hacks.length}</span></button>
-        {Object.entries(CATEGORIES).map(([key, category]) => (
-          <button type="button" data-filter={key}>{category.label} <span>{categoryCounts[key]}</span></button>
-        ))}
+    {SITE_SETTINGS.homepage.showSearch && (
+      <div class="filter-panel">
+        <label class="search-field" for="hack-search">
+          <Icon name="search" />
+          <input id="hack-search" type="search" placeholder="Search guides, stores, apps..." autocomplete="off" data-search-input />
+          <kbd>/</kbd>
+        </label>
+        <div class="filter-buttons" role="group" aria-label="Filter guides by category">
+          <button type="button" class="active" data-filter="all">All <span>{hacks.length}</span></button>
+          {CATEGORY_ENTRIES.map(([key, category]) => (
+            <button type="button" data-filter={key}>{category.label} <span>{categoryCounts[key]}</span></button>
+          ))}
+        </div>
+        <div class="result-status" aria-live="polite"><span data-result-count>{hacks.length}</span> guides shown</div>
       </div>
-      <div class="result-status" aria-live="polite"><span data-result-count>{hacks.length}</span> guides shown</div>
-    </div>
+    )}
 
     <div class="hack-grid" data-card-grid>
       {hacks.map((hack) => <HackCard hack={hack} />)}
@@ -109,14 +118,16 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
     </div>
   </section>
 
-  <section class="discord-banner">
-    <div>
-      <span class="kicker">The guide is step one</span>
-      <h2>See live finds inside The 420 Lobby.</h2>
-      <p>Use the website for clean evergreen instructions. Use Discord for fresh opportunities, member reports, and updates.</p>
-    </div>
-    <a href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join the community <Icon name="arrow" /></a>
-  </section>
+  {SITE_SETTINGS.homepage.showDiscordBanner && (
+    <section class="discord-banner">
+      <div>
+        <span class="kicker">{SITE_SETTINGS.discord.bannerKicker}</span>
+        <h2>{SITE_SETTINGS.discord.bannerTitle}</h2>
+        <p>{SITE_SETTINGS.discord.bannerDescription}</p>
+      </div>
+      <a href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> {SITE_SETTINGS.discord.bannerButtonLabel} <Icon name="arrow" /></a>
+    </section>
+  )}
 </BaseLayout>
 
 <script>
