@@ -4,6 +4,7 @@ import '../styles/live-status.css';
 import '../styles/home-compact.css';
 import '../styles/site-settings.css';
 import '../styles/site-hardening.css';
+import '../styles/app-shell.css';
 import Sidebar from '../components/Sidebar.astro';
 import MobileHeader from '../components/MobileHeader.astro';
 import Footer from '../components/Footer.astro';
@@ -16,6 +17,7 @@ interface Props {
   activeCategory?: CategoryKey | 'all';
   article?: boolean;
   noindex?: boolean;
+  chrome?: boolean;
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   activeCategory = 'all',
   article = false,
   noindex = false,
+  chrome = true,
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.siteUrl);
 const ogImage = new URL(image, SITE.siteUrl);
@@ -60,13 +63,13 @@ const themeVariables = [
     <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
   </head>
-  <body class={`density-${SITE_SETTINGS.theme.density}`}>
+  <body class:list={[`density-${SITE_SETTINGS.theme.density}`, { 'no-site-chrome': !chrome }]}>
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <Sidebar activeCategory={activeCategory} />
-    <MobileHeader />
+    {chrome && <Sidebar activeCategory={activeCategory} />}
+    {chrome && <MobileHeader />}
     <div class="site-shell">
       <main id="main-content"><slot /></main>
-      <Footer />
+      {chrome && <Footer />}
     </div>
   </body>
 </html>
