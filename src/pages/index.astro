@@ -112,6 +112,7 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
 </BaseLayout>
 
 <script>
+  // @ts-nocheck
   const input = document.querySelector('[data-search-input]');
   const cards = [...document.querySelectorAll('[data-hack-card]')];
   const filterButtons = [...document.querySelectorAll('[data-filter]')];
@@ -119,11 +120,65 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
   const empty = document.querySelector('[data-empty-state]');
   const clear = document.querySelector('[data-clear-search]');
   let activeFilter = 'all';
+  let liveStatuses = {};
 
   const params = new URLSearchParams(window.location.search);
   const initialCategory = params.get('category');
   if (initialCategory && filterButtons.some((button) => button.getAttribute('data-filter') === initialCategory)) {
     activeFilter = initialCategory;
+  }
+
+  function effectiveStatus(entry) {
+    if (!entry) return 'active';
+    if (entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now()) return 'expired';
+    return entry.status || 'active';
+  }
+
+  function remainingLabel(expiresAt) {
+    const diff = Date.parse(expiresAt) - Date.now();
+    if (diff <= 0) return 'Expired';
+    const minutes = Math.ceil(diff / 60000);
+    if (minutes < 60) return `Ends in ${minutes}m`;
+    const hours = Math.ceil(minutes / 60);
+    if (hours < 48) return `Ends in ${hours}h`;
+    return `Ends in ${Math.ceil(hours / 24)}d`;
+  }
+
+  function applyLiveStatuses() {
+    cards.forEach((card) => {
+      if (!(card instanceof HTMLElement)) return;
+      const id = card.dataset.guideId;
+      const entry = id ? liveStatuses[id] : null;
+      const status = effectiveStatus(entry);
+      const visible = status !== 'paused' && status !== 'expired';
+      card.dataset.liveVisible = visible ? 'true' : 'false';
+      card.dataset.liveStatus = status;
+
+      const badge = card.querySelector('[data-live-status-label]');
+      if (!(badge instanceof HTMLElement)) return;
+      const staticBadge = badge.dataset.staticBadge || '';
+      badge.classList.remove('live-active', 'live-expiring');
+
+      if (!entry) {
+        badge.textContent = staticBadge;
+        badge.hidden = !staticBadge;
+        return;
+      }
+
+      if (status === 'active' && entry.expiresAt) {
+        badge.textContent = remainingLabel(entry.expiresAt);
+        badge.hidden = false;
+        const remaining = Date.parse(entry.expiresAt) - Date.now();
+        badge.classList.toggle('live-expiring', remaining > 0 && remaining <= 6 * 60 * 60 * 1000);
+        return;
+      }
+
+      if (status === 'active') {
+        badge.textContent = staticBadge || 'Active';
+        badge.hidden = false;
+        badge.classList.add('live-active');
+      }
+    });
   }
 
   function applyFilters() {
@@ -133,7 +188,8 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
       if (!(card instanceof HTMLElement)) return;
       const matchesCategory = activeFilter === 'all' || card.dataset.category === activeFilter;
       const matchesSearch = !query || card.dataset.search?.includes(query);
-      const show = Boolean(matchesCategory && matchesSearch);
+      const liveVisible = card.dataset.liveVisible !== 'false';
+      const show = Boolean(matchesCategory && matchesSearch && liveVisible);
       card.hidden = !show;
       if (show) visible += 1;
     });
@@ -143,6 +199,19 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
       button.classList.toggle('active', button.getAttribute('data-filter') === activeFilter);
       button.setAttribute('aria-pressed', String(button.getAttribute('data-filter') === activeFilter));
     });
+  }
+
+  async function refreshLiveStatuses() {
+    try {
+      const response = await fetch('/api/deal-status', { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json();
+      liveStatuses = payload.statuses || {};
+      applyLiveStatuses();
+      applyFilters();
+    } catch {
+      // The static library stays usable if the live status endpoint is unavailable.
+    }
   }
 
   filterButtons.forEach((button) => button.addEventListener('click', () => {
@@ -177,5 +246,8 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
     }
   });
 
+  applyLiveStatuses();
   applyFilters();
+  refreshLiveStatuses();
+  window.setInterval(() => { applyLiveStatuses(); applyFilters(); }, 60000);
 </script>
