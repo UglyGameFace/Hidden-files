@@ -1,5 +1,10 @@
 /* Homepage density adjustments. Desktop stays spacious; phones get the fast route to the real guides. */
 
+/* Do not repeat the same one or two methods in both Featured and All Guides. */
+.featured-section:not(:has(.featured-grid .hack-card:nth-child(3))) {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .hero-section {
     gap: 0;
