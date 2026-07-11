@@ -4,14 +4,16 @@ A fast Astro + Tailwind CSS guide hub built for Vercel. Methods use Astro conten
 
 ## Included
 
-- Responsive phone, tablet, laptop, and wide-desktop layouts
-- Compact tablet navigation rail and full desktop sidebar
-- Mobile navigation drawer
+- Responsive phone, small-phone, tablet, laptop, short-screen, and wide-desktop layouts
+- Compact tablet navigation rail and full desktop sidebar on the public site
+- Full-width private Control Center application shell
+- Mobile navigation drawer with safe-area support
 - Client-side keyword search and category filters
-- Markdown guide pages with code blocks and generated table of contents
+- Markdown guide pages with code blocks, overflow-safe tables, and generated table of contents
 - The 420 Lobby branding, SEO metadata, social preview, and persistent Discord CTAs
 - Private Lobby Control Center with live preview, local drafts, undo/redo, and guarded publishing
 - Fast live method status controls for pausing, expiring, verifying, and extending deals
+- Build-time conflict and layout regression audit
 
 ## Local setup
 
@@ -52,14 +54,13 @@ Methods are stored in `src/content/hacks/` with the existing Markdown content co
 
 ## Lobby Control Center
 
-The private website editor is available at both:
+The private website editor is available at:
 
 ```text
 /control-center
-/deal-desk
 ```
 
-`/deal-desk` remains available as a compatibility route, but the interface is now the complete Lobby Control Center.
+The legacy `/deal-desk` address permanently redirects to `/control-center`, so there is only one editor route and one set of loaded styles/scripts.
 
 ### Editable website areas
 
@@ -88,6 +89,8 @@ The Control Center provides:
 - Undo and redo
 - Discard unpublished changes
 - Explicit confirmation before publishing
+- Protection against one tab/device overwriting a newer publish from another
+- Stale-draft preservation instead of silently replacing newer public settings
 - Server-side validation so unsafe or malformed settings cannot break the site
 
 Publishing updates the settings file through a secure Vercel Function and starts the normal Vercel rebuild. The current public site stays online during deployment.
@@ -137,14 +140,19 @@ Never put the password, session secret, or GitHub token in a `PUBLIC_` variable.
 1. Import the GitHub repository into Vercel.
 2. Add the public and private variables above.
 3. Deploy.
-4. Future Control Center publishes and Git pushes create automatic deployments.
+4. Future Control Center publishes and `main` branch pushes create automatic production deployments.
 
-## Build commands
+Preview-branch builds are intentionally skipped to preserve the Vercel Hobby build allowance. Production publishes and method-content changes still build normally.
+
+## Build and audit commands
 
 ```bash
+npm run audit
 npm run check
 npm run build
 npm run preview
 ```
+
+`npm run check` and `npm run build` automatically run the site audit first. The audit rejects obsolete Deal Desk imports, duplicate modal ownership, unbalanced CSS, mismatched Control Center tabs/panels, invalid settings structure, browser-script syntax errors, and missing draft/concurrency safeguards.
 
 The production site is generated in `dist/`.
