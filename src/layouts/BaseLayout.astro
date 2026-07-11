@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import '../styles/live-status.css';
 import Sidebar from '../components/Sidebar.astro';
 import MobileHeader from '../components/MobileHeader.astro';
 import Footer from '../components/Footer.astro';
@@ -11,6 +12,7 @@ interface Props {
   image?: string;
   activeCategory?: CategoryKey | 'all';
   article?: boolean;
+  noindex?: boolean;
 }
 
 const {
@@ -19,6 +21,7 @@ const {
   image = '/og-card.svg',
   activeCategory = 'all',
   article = false,
+  noindex = false,
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.siteUrl);
 const ogImage = new URL(image, SITE.siteUrl);
@@ -31,6 +34,7 @@ const ogImage = new URL(image, SITE.siteUrl);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#090b0e" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow, noarchive" />}
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/site.webmanifest" />
