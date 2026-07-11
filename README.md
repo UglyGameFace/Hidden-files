@@ -1,6 +1,6 @@
 # The 420 Lobby — Money & Food Hacks
 
-A fast, static Astro + Tailwind CSS guide hub built for Vercel. It uses Astro content collections, so adding a guide is as simple as adding a Markdown file.
+A fast Astro + Tailwind CSS guide hub built for Vercel. Methods use Astro content collections, while the private Lobby Control Center manages the public website without requiring Termux or manual Git edits.
 
 ## Included
 
@@ -10,7 +10,8 @@ A fast, static Astro + Tailwind CSS guide hub built for Vercel. It uses Astro co
 - Client-side keyword search and category filters
 - Markdown guide pages with code blocks and generated table of contents
 - The 420 Lobby branding, SEO metadata, social preview, and persistent Discord CTAs
-- Fully static output with very little browser JavaScript
+- Private Lobby Control Center with live preview, local drafts, undo/redo, and guarded publishing
+- Fast live method status controls for pausing, expiring, verifying, and extending deals
 
 ## Local setup
 
@@ -22,7 +23,7 @@ npm run dev
 
 Open the local URL Astro prints in the terminal.
 
-## Add your permanent Discord invite
+## Public environment variables
 
 Create `.env.local` locally:
 
@@ -31,90 +32,81 @@ PUBLIC_DISCORD_INVITE_URL=https://discord.gg/YOUR-PERMANENT-CODE
 PUBLIC_SITE_URL=http://localhost:4321
 ```
 
-In Vercel, add the same values under **Project → Settings → Environment Variables**. Use your unlimited-use Discord invite for `PUBLIC_DISCORD_INVITE_URL`.
+The Discord invite can also be set from the Lobby Control Center. When the Control Center invite field is blank, the site falls back to `PUBLIC_DISCORD_INVITE_URL`.
 
-## Add a guide
+## Add or edit methods
 
-Create a new `.md` file inside `src/content/hacks/`:
-
-```md
----
-title: "Your Guide Title"
-description: "One clear sentence used on the guide card and in search results."
-category: "food-hacks"
-featured: false
-badge: "New"
-keywords: ["restaurant", "coupon", "pickup"]
-published: 2026-07-10
-updated: 2026-07-12
-readTime: "6 min"
-order: 10
----
-
-## First section
-
-Write the guide in Markdown.
+The normal workflow is now:
 
 ```text
-Code blocks are supported.
-```
+/control-center → Methods → New Method
 ```
 
-Allowed categories:
+The dedicated picker groups methods into Active, Expiring Soon, Paused, and Expired. The editor manages title, description, category, badge, keywords, featured/draft state, sort order, Markdown content, and expiration controls.
+
+Methods are stored in `src/content/hacks/` with the existing Markdown content collection. Allowed stable category keys are:
 
 - `cashback-loops`
 - `food-hacks`
 - `retail-deals`
 
-Set `draft: true` to keep a guide out of production.
+## Lobby Control Center
 
-## Deploy to Vercel
-
-1. Upload this folder to a new GitHub repository.
-2. In Vercel, choose **Add New → Project** and import the repository.
-3. Vercel should detect Astro automatically.
-4. Add the two public environment variables above.
-5. Deploy. Future Git pushes will create automatic deployments.
-
-No Vercel adapter is required for this fully static version.
-
-## Build commands
-
-```bash
-npm run check
-npm run build
-npm run preview
-```
-
-The production site is generated in `dist/`.
-
-## Private Deal Desk
-
-The private control page is available at:
+The private website editor is available at both:
 
 ```text
+/control-center
 /deal-desk
 ```
 
-It uses a dedicated custom picker rather than a native browser dropdown. Methods are grouped into Active, Expiring Soon, Paused, and Expired views.
+`/deal-desk` remains available as a compatibility route, but the interface is now the complete Lobby Control Center.
 
-### What changes immediately
+### Editable website areas
 
-The following actions update `src/data/deal-status.json` through a secure Vercel Function and affect the public site immediately:
+- Methods and live method status
+- Homepage hero, terminal, buttons, trust strip, library copy, and section visibility
+- Community name, product name, brand mark, and tagline
+- Desktop and mobile navigation labels
+- Category labels, descriptions, visibility, and order
+- Permanent Discord invite and every Discord CTA
+- Footer content
+- SEO title, description, and share-image path
+- Tested accent-color and page-density presets
+
+### Draft and publishing workflow
+
+Website settings are stored in:
+
+```text
+src/data/site-settings.json
+```
+
+The Control Center provides:
+
+- Instant phone, tablet, and desktop preview
+- Automatic local draft recovery
+- Undo and redo
+- Discard unpublished changes
+- Explicit confirmation before publishing
+- Server-side validation so unsafe or malformed settings cannot break the site
+
+Publishing updates the settings file through a secure Vercel Function and starts the normal Vercel rebuild. The current public site stays online during deployment.
+
+### Changes that remain immediate
+
+The following method actions update `src/data/deal-status.json` and affect the public site without waiting for a full rebuild:
 
 - Verify now
 - Extend by 1, 6, or 24 hours
+- Set a custom expiration
+- Clear an expiration timer
 - Pause
 - Expire now
 - Reactivate by verifying or extending
 
-Status-only commits skip a full Vercel rebuild. The public library and guide pages read the latest status through `/api/deal-status`.
+Status-only commits skip the full Vercel build. The public library and guide pages read the latest status through `/api/deal-status`.
 
-### What triggers a rebuild
-
-Editing a method title, description, category, badge, keywords, featured state, draft state, or Markdown body updates the guide file in GitHub. Vercel then rebuilds the static guide pages automatically.
-
-### Required Vercel variables
+## Required private Vercel variables
 
 Add these under **Project → Settings → Environment Variables**:
 
@@ -138,4 +130,21 @@ GITHUB_REPO_NAME=Hidden-files
 GITHUB_BRANCH=main
 ```
 
-Never put the password or GitHub token in a `PUBLIC_` variable. Variables prefixed with `PUBLIC_` are exposed to browser code.
+Never put the password, session secret, or GitHub token in a `PUBLIC_` variable. Variables prefixed with `PUBLIC_` are exposed to browser code.
+
+## Deploy to Vercel
+
+1. Import the GitHub repository into Vercel.
+2. Add the public and private variables above.
+3. Deploy.
+4. Future Control Center publishes and Git pushes create automatic deployments.
+
+## Build commands
+
+```bash
+npm run check
+npm run build
+npm run preview
+```
+
+The production site is generated in `dist/`.
