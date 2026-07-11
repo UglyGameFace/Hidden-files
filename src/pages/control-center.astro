@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LobbyControlCenter from '../components/LobbyControlCenter.astro';
+import '../styles/deal-desk.css';
+import '../styles/deal-desk-control-polish.css';
+import '../styles/deal-desk-mobile-flow.css';
+import '../styles/control-center.css';
+---
+
+<BaseLayout
+  title="Lobby Control Center | The 420 Lobby"
+  description="Private website and method controls for The 420 Lobby."
+  noindex
+>
+  <LobbyControlCenter />
+</BaseLayout>
+
+<script src="/deal-desk.js" defer></script>
+<script src="/control-center.js" defer></script>
