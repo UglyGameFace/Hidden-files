@@ -115,6 +115,14 @@ import '../styles/deal-desk.css';
                 <button type="button" data-status-action="pause">Pause</button>
                 <button type="button" class="danger" data-status-action="expire">Expire now</button>
               </div>
+              <div class="desk-expiry-control">
+                <label>
+                  <span>Custom expiration</span>
+                  <input type="datetime-local" data-custom-expiry />
+                </label>
+                <button type="button" data-set-custom-expiry>Set expiration</button>
+                <button type="button" data-clear-expiry>Clear timer</button>
+              </div>
             </section>
 
             <div class="desk-field-grid">
