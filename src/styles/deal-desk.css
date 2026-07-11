@@ -74,6 +74,13 @@
 .desk-control-grid button { min-height: 2.65rem; border: 1px solid var(--line); border-radius: .45rem; background: var(--panel-2); color: var(--muted); cursor: pointer; font: 700 .59rem/1 var(--mono); text-transform: uppercase; }
 .desk-control-grid button:hover { color: var(--text); border-color: rgba(183,255,60,.3); }
 .desk-control-grid button.danger { color: #ff8983; border-color: rgba(255,105,97,.25); background: rgba(255,105,97,.06); }
+.desk-expiry-control { display: grid; grid-template-columns: minmax(14rem,1fr) auto auto; align-items: end; gap: .55rem; margin-top: .65rem; }
+.desk-expiry-control label { display: grid; gap: .35rem; }
+.desk-expiry-control label span { color: var(--muted); font: 700 .56rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.desk-expiry-control input { min-height: 2.65rem; border: 1px solid var(--line); border-radius: .45rem; outline: 0; background: var(--panel); color: var(--text); padding: .55rem .7rem; color-scheme: dark; }
+.desk-expiry-control input:focus { border-color: rgba(183,255,60,.4); box-shadow: 0 0 0 3px rgba(183,255,60,.06); }
+.desk-expiry-control button { min-height: 2.65rem; border: 1px solid var(--line); border-radius: .45rem; background: var(--panel-2); color: var(--muted); padding: .6rem .75rem; cursor: pointer; font: 700 .58rem/1 var(--mono); text-transform: uppercase; }
+.desk-expiry-control button:hover { color: var(--text); border-color: rgba(183,255,60,.3); }
 .desk-field-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; padding: 1.4rem; }
 .desk-field { display: grid; gap: .48rem; min-width: 0; }
 .desk-field-wide { grid-column: 1/-1; }
