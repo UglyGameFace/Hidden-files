@@ -1,7 +1,4 @@
-/* Final build-time settings overrides. The server decides whether optional sections exist. */
-.featured-section {
-  display: block !important;
-}
+/* Build-time layout presets. Optional sections are rendered or omitted by Astro. */
 
 body.density-comfortable .hero-section {
   min-height: 42rem;

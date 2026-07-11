@@ -27,7 +27,7 @@ function safeUrl(value, fallback = '') {
   if (!raw) return fallback;
   try {
     const parsed = new URL(raw);
-    if (!['https:', 'http:'].includes(parsed.protocol)) return fallback;
+    if (parsed.protocol !== 'https:') return fallback;
     return parsed.toString();
   } catch {
     return fallback;
@@ -132,7 +132,7 @@ export function sanitizeSiteSettings(input = {}) {
     branding: {
       name: text(input.branding?.name, defaults.branding.name, 64, 2),
       productName: text(input.branding?.productName, defaults.branding.productName, 64, 2),
-      brandMark: text(input.branding?.brandMark, defaults.branding.brandMark, 8, 1),
+      brandMark: text(input.branding?.brandMark, defaults.branding.brandMark, 6, 1),
       tagline: text(input.branding?.tagline, defaults.branding.tagline, 140, 3),
     },
     homepage: {
@@ -217,5 +217,9 @@ export async function writeSiteSettings(settings, sha) {
     'Lobby Control Center: publish site settings',
     sha,
   );
-  return { settings: clean, commit: result.commit?.sha || null };
+  return {
+    settings: clean,
+    sha: result.content?.sha || null,
+    commit: result.commit?.sha || null,
+  };
 }

@@ -1,5 +1,5 @@
 .status-chip.live-active {
-  border-color: rgba(183,255,60,.25);
+  border-color: color-mix(in srgb, var(--lime) 25%, transparent);
   background: var(--lime-soft);
   color: var(--lime);
 }

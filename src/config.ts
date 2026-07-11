@@ -42,10 +42,30 @@ export const CATEGORY_ENTRIES = (Object.entries(CATEGORIES) as [CategoryKey, (ty
   .sort((a, b) => a[1].order - b[1].order);
 
 export const THEME_PRESETS = {
-  lime: { accent: '#b7ff3c', soft: 'rgba(183,255,60,.09)' },
-  cyan: { accent: '#55dff4', soft: 'rgba(85,223,244,.09)' },
-  amber: { accent: '#ffbd4a', soft: 'rgba(255,189,74,.09)' },
-  violet: { accent: '#a78bfa', soft: 'rgba(167,139,250,.09)' },
+  lime: {
+    accent: '#b7ff3c',
+    rgb: '183 255 60',
+    soft: 'rgb(183 255 60 / .09)',
+    onAccent: '#080b07',
+  },
+  cyan: {
+    accent: '#55dff4',
+    rgb: '85 223 244',
+    soft: 'rgb(85 223 244 / .09)',
+    onAccent: '#061013',
+  },
+  amber: {
+    accent: '#ffbd4a',
+    rgb: '255 189 74',
+    soft: 'rgb(255 189 74 / .09)',
+    onAccent: '#120d03',
+  },
+  violet: {
+    accent: '#a78bfa',
+    rgb: '167 139 250',
+    soft: 'rgb(167 139 250 / .09)',
+    onAccent: '#0e0918',
+  },
 } as const;
 
 export const ACTIVE_THEME = THEME_PRESETS[SITE_SETTINGS.theme.accentPreset as keyof typeof THEME_PRESETS]
