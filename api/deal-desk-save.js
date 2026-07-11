@@ -6,10 +6,12 @@ import {
   json,
   methodNotAllowed,
   readRepoFile,
+  readStatusDocument,
   requireAuth,
   requireSameOrigin,
   validateGuide,
   writeRepoFile,
+  writeStatusDocument,
 } from '../server/deal-desk.js';
 
 export default {
@@ -26,6 +28,21 @@ export default {
 
       if (!current.sha && body.id) {
         throw new HttpError(409, 'That guide no longer exists. Refresh the Deal Desk and try again.');
+      }
+
+      const statusDocument = await readStatusDocument();
+      if (!statusDocument.entries[guide.id]) {
+        statusDocument.entries[guide.id] = {
+          status: 'active',
+          expiresAt: null,
+          verifiedAt: new Date().toISOString(),
+          note: '',
+        };
+        await writeStatusDocument(
+          statusDocument.entries,
+          statusDocument.sha,
+          `Deal Desk: register ${guide.id}`,
+        );
       }
 
       const file = composeGuideFile(guide);
