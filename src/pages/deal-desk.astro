@@ -1,0 +1,229 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import '../styles/deal-desk.css';
+---
+
+<BaseLayout
+  title="Deal Desk | The 420 Lobby"
+  description="Private method controls for The 420 Lobby."
+  noindex
+>
+  <section class="deal-desk" data-deal-desk>
+    <header class="desk-hero">
+      <div>
+        <span class="desk-kicker">Private operations</span>
+        <h1>The 420 Lobby<br /><em>Deal Desk</em></h1>
+        <p>Pick a method, update it, verify it, pause it, or expire it without opening Termux.</p>
+      </div>
+      <div class="desk-system-card" aria-label="Deal Desk system summary">
+        <span><i></i> Secure session</span>
+        <strong>Fast status controls</strong>
+        <small>Status changes affect the public site immediately. Full wording edits publish after Vercel rebuilds.</small>
+      </div>
+    </header>
+
+    <section class="desk-login" data-login-panel>
+      <div class="desk-lock-mark" aria-hidden="true">420</div>
+      <div>
+        <span class="desk-kicker">Owner access</span>
+        <h2>Unlock the Deal Desk</h2>
+        <p>Use the private password stored in your Vercel environment variables.</p>
+      </div>
+      <form data-login-form>
+        <label>
+          <span>Deal Desk password</span>
+          <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Unlock Deal Desk</button>
+      </form>
+      <p class="desk-inline-error" data-login-error hidden></p>
+    </section>
+
+    <section class="desk-app" data-desk-app hidden>
+      <div class="desk-topbar">
+        <div>
+          <span class="desk-kicker">Method control</span>
+          <h2>Current operations</h2>
+        </div>
+        <div class="desk-top-actions">
+          <button type="button" class="desk-button desk-button-muted" data-refresh>Refresh</button>
+          <button type="button" class="desk-button desk-button-muted" data-logout>Lock desk</button>
+          <button type="button" class="desk-button desk-button-primary" data-new-method>+ New method</button>
+        </div>
+      </div>
+
+      <div class="desk-stats" aria-label="Method status summary">
+        <article><span>Active</span><strong data-stat-active>0</strong></article>
+        <article><span>Expiring soon</span><strong data-stat-expiring>0</strong></article>
+        <article><span>Paused</span><strong data-stat-paused>0</strong></article>
+        <article><span>Expired</span><strong data-stat-expired>0</strong></article>
+      </div>
+
+      <div class="desk-workspace">
+        <aside class="desk-selection-panel">
+          <span class="desk-kicker">Dedicated picker</span>
+          <h3>Choose a method</h3>
+          <p>Search and select from Active, Expiring Soon, Paused, or Expired methods.</p>
+          <button type="button" class="desk-picker-launch" data-open-picker>
+            <span>
+              <small>Selected method</small>
+              <strong data-selected-label>None selected</strong>
+            </span>
+            <b>Open picker →</b>
+          </button>
+          <div class="desk-selected-live" data-selected-live hidden>
+            <span data-live-dot></span>
+            <div>
+              <strong data-live-label></strong>
+              <small data-live-detail></small>
+            </div>
+          </div>
+          <div class="desk-fast-note">
+            <strong>Need it gone fast?</strong>
+            <p>Select the method and use <b>Expire now</b>. The public library hides it without waiting for a new build.</p>
+          </div>
+        </aside>
+
+        <main class="desk-editor-shell">
+          <div class="desk-empty-editor" data-empty-editor>
+            <span>↗</span>
+            <h3>No method selected</h3>
+            <p>Open the dedicated picker or create a new method.</p>
+            <button type="button" data-open-picker>Choose method</button>
+          </div>
+
+          <form class="desk-editor" data-editor hidden>
+            <div class="desk-editor-heading">
+              <div>
+                <span class="desk-kicker" data-editor-mode>Edit method</span>
+                <h3 data-editor-title>Method editor</h3>
+                <p data-editor-id></p>
+              </div>
+              <button type="button" class="desk-preview-link" data-open-public hidden>Open public guide ↗</button>
+            </div>
+
+            <section class="desk-quick-controls" data-quick-controls>
+              <div class="desk-control-heading">
+                <div><span>Live controls</span><strong>Changes here are immediate</strong></div>
+                <small data-live-control-summary></small>
+              </div>
+              <div class="desk-control-grid">
+                <button type="button" data-status-action="verify">✓ Verify now</button>
+                <button type="button" data-extend-hours="1">+1 hour</button>
+                <button type="button" data-extend-hours="6">+6 hours</button>
+                <button type="button" data-extend-hours="24">+24 hours</button>
+                <button type="button" data-status-action="pause">Pause</button>
+                <button type="button" class="danger" data-status-action="expire">Expire now</button>
+              </div>
+            </section>
+
+            <div class="desk-field-grid">
+              <label class="desk-field desk-field-wide">
+                <span>Title</span>
+                <input name="title" maxlength="140" required />
+              </label>
+
+              <label class="desk-field desk-field-wide">
+                <span>Card description</span>
+                <textarea name="description" rows="3" maxlength="260" required></textarea>
+              </label>
+
+              <fieldset class="desk-field desk-field-wide desk-category-field">
+                <legend>Category</legend>
+                <div class="desk-category-picker" data-category-picker>
+                  <button type="button" data-category="cashback-loops"><span>↻</span><strong>Cashback Loops</strong><small>Rewards and stacking</small></button>
+                  <button type="button" data-category="food-hacks"><span>⌁</span><strong>Food Hacks</strong><small>Restaurants and groceries</small></button>
+                  <button type="button" data-category="retail-deals"><span>◇</span><strong>Retail Deals</strong><small>Markdowns and promos</small></button>
+                </div>
+              </fieldset>
+
+              <label class="desk-field">
+                <span>Badge</span>
+                <input name="badge" maxlength="36" placeholder="Active, YMMV, New..." />
+              </label>
+
+              <label class="desk-field">
+                <span>Read time</span>
+                <input name="readTime" maxlength="12" placeholder="3 min" />
+              </label>
+
+              <label class="desk-field desk-field-wide">
+                <span>Search keywords</span>
+                <input name="keywords" placeholder="Starbucks, GoPuff, promo code" />
+              </label>
+
+              <label class="desk-field">
+                <span>Sort order</span>
+                <input name="order" type="number" min="0" max="9999" inputmode="numeric" />
+              </label>
+
+              <div class="desk-field desk-switch-field">
+                <span>Homepage placement</span>
+                <button type="button" class="desk-toggle" data-feature-toggle aria-pressed="false"><i></i><b>Not featured</b></button>
+              </div>
+
+              <div class="desk-field desk-switch-field">
+                <span>Publishing</span>
+                <button type="button" class="desk-toggle" data-draft-toggle aria-pressed="false"><i></i><b>Public</b></button>
+              </div>
+
+              <label class="desk-field desk-field-wide">
+                <span>Guide content <small>Markdown supported</small></span>
+                <textarea class="desk-body-editor" name="body" rows="22" required></textarea>
+              </label>
+            </div>
+
+            <div class="desk-savebar">
+              <p><strong>Status controls:</strong> immediate. <strong>Content saves:</strong> publish after Vercel rebuilds.</p>
+              <button type="submit" class="desk-button desk-button-primary" data-save-method>Save method</button>
+            </div>
+          </form>
+        </main>
+      </div>
+    </section>
+  </section>
+
+  <div class="desk-modal-backdrop" data-picker-backdrop hidden>
+    <section class="desk-picker" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <header>
+        <div><span class="desk-kicker">Dedicated method picker</span><h2 id="picker-title">Choose a method</h2></div>
+        <button type="button" class="desk-icon-button" data-close-picker aria-label="Close picker">×</button>
+      </header>
+      <div class="desk-picker-layout">
+        <aside>
+          <label class="desk-picker-search">
+            <span>⌕</span>
+            <input type="search" placeholder="Search title, app, code..." data-picker-search />
+          </label>
+          <nav class="desk-picker-filters" aria-label="Filter methods">
+            <button type="button" class="active" data-picker-filter="all">All methods <b data-filter-count="all">0</b></button>
+            <button type="button" data-picker-filter="active">Active <b data-filter-count="active">0</b></button>
+            <button type="button" data-picker-filter="expiring">Expiring soon <b data-filter-count="expiring">0</b></button>
+            <button type="button" data-picker-filter="paused">Paused <b data-filter-count="paused">0</b></button>
+            <button type="button" data-picker-filter="expired">Expired <b data-filter-count="expired">0</b></button>
+          </nav>
+          <button type="button" class="desk-picker-new" data-new-method>+ Create new method</button>
+        </aside>
+        <div class="desk-picker-results">
+          <div class="desk-picker-result-head"><strong data-picker-result-count>0 methods</strong><span>Tap one to edit</span></div>
+          <div class="desk-method-list" data-method-list></div>
+          <div class="desk-picker-empty" data-picker-empty hidden><strong>No matching method</strong><p>Try a broader keyword or another status.</p></div>
+        </div>
+      </div>
+      <footer><button type="button" data-close-picker>Cancel</button></footer>
+    </section>
+  </div>
+
+  <div class="desk-modal-backdrop" data-confirm-backdrop hidden>
+    <section class="desk-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+      <span class="desk-confirm-mark">!</span>
+      <h2 id="confirm-title" data-confirm-title>Confirm action</h2>
+      <p data-confirm-copy></p>
+      <div><button type="button" data-confirm-back>Back</button><button type="button" class="danger" data-confirm-go>Confirm</button></div>
+    </section>
+  </div>
+
+  <div class="desk-toast" data-desk-toast hidden></div>
+</BaseLayout>
+
+<script src="/deal-desk.js" defer></script>
