@@ -8,6 +8,7 @@ const hacks = defineCollection({
     title: z.string(),
     description: z.string(),
     category: z.enum(['cashback-loops', 'food-hacks', 'retail-deals']),
+    managed: z.boolean().default(false),
     featured: z.boolean().default(false),
     draft: z.boolean().default(false),
     badge: z.string().optional(),

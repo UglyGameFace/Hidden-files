@@ -5,9 +5,8 @@ import HackCard from '../components/HackCard.astro';
 import Icon from '../components/Icon.astro';
 import { CATEGORIES, SITE } from '../config';
 
-const hacks = (await getCollection('hacks', ({ data }) => !data.draft)).sort(
-  (a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order,
-);
+const hacks = (await getCollection('hacks', ({ data }) => data.managed && !data.draft))
+  .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order);
 const featured = hacks.filter((hack) => hack.data.featured).slice(0, 3);
 const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((counts, key) => {
   counts[key] = hacks.filter((hack) => hack.data.category === key).length;

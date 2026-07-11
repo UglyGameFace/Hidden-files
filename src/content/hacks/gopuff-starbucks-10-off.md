@@ -2,6 +2,7 @@
 title: "Up to $10 Off Starbucks Through GoPuff"
 description: "Use the STARBUCKS10 promo at checkout to reduce an eligible Starbucks order placed through GoPuff."
 category: "food-hacks"
+managed: true
 featured: true
 badge: "Verify first"
 keywords: ["Starbucks", "GoPuff", "STARBUCKS10", "coffee", "promo code", "food delivery"]
