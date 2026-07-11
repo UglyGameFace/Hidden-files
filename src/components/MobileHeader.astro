@@ -1,13 +1,13 @@
 ---
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
-import { SITE, CATEGORIES } from '../config';
+import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES } from '../config';
 ---
 
 <header class="mobile-header">
   <Brand compact />
   <div class="mobile-header-actions">
-    <a class="mobile-discord" href={SITE.discordInvite} target="_blank" rel="noreferrer" aria-label="Join The 420 Lobby Discord">
+    <a class="mobile-discord" href={SITE.discordInvite} target="_blank" rel="noreferrer" aria-label={`Join ${SITE.name} Discord`}>
       <Icon name="discord" />
     </a>
     <button class="mobile-menu-button" type="button" data-menu-open aria-label="Open navigation" aria-expanded="false">
@@ -23,14 +23,14 @@ import { SITE, CATEGORIES } from '../config';
     <button type="button" data-menu-close aria-label="Close navigation"><Icon name="close" /></button>
   </div>
   <nav class="mobile-drawer-nav">
-    <a href="/"><Icon name="home" /><span><strong>All Hacks</strong><small>Complete guide library</small></span></a>
-    {Object.entries(CATEGORIES).map(([key, category]) => (
+    <a href="/"><Icon name="home" /><span><strong>{SITE_SETTINGS.navigation.allHacksLabel}</strong><small>{SITE_SETTINGS.navigation.allHacksDescription}</small></span></a>
+    {CATEGORY_ENTRIES.map(([key, category]) => (
       <a href={`/?category=${key}#library`}><Icon name={category.icon} /><span><strong>{category.label}</strong><small>{category.description}</small></span></a>
     ))}
   </nav>
   <div class="mobile-drawer-cta">
-    <p>Live finds, updates, and community discussion.</p>
-    <a class="discord-button" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> Join The 420 Lobby</a>
+    <p>{SITE_SETTINGS.discord.mobileDescription}</p>
+    <a class="discord-button" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> {SITE_SETTINGS.discord.sidebarButtonLabel}</a>
   </div>
 </aside>
 
