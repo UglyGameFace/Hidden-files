@@ -2,14 +2,10 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Icon from '../../components/Icon.astro';
-import dealStatus from '../../data/deal-status.json';
 import { CATEGORIES, SITE } from '../../config';
 
-const registeredGuideIds = new Set(Object.keys(dealStatus));
-
 export async function getStaticPaths() {
-  const hacks = (await getCollection('hacks', ({ data }) => !data.draft))
-    .filter((hack) => registeredGuideIds.has(hack.id));
+  const hacks = await getCollection('hacks', ({ data }) => data.managed && !data.draft);
   return hacks.map((hack) => ({ params: { id: hack.id }, props: { hack } }));
 }
 
@@ -19,8 +15,8 @@ interface Props {
 const { hack } = Astro.props;
 const { Content, headings } = await render(hack);
 const category = CATEGORIES[hack.data.category];
-const related = (await getCollection('hacks', ({ data }) => !data.draft && data.category === hack.data.category))
-  .filter((item) => registeredGuideIds.has(item.id) && item.id !== hack.id)
+const related = (await getCollection('hacks', ({ data }) => data.managed && !data.draft && data.category === hack.data.category))
+  .filter((item) => item.id !== hack.id)
   .sort((a, b) => a.data.order - b.data.order)
   .slice(0, 3);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
