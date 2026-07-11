@@ -4,8 +4,9 @@ description: "Use the STARBUCKS10 promo at checkout to reduce an eligible Starbu
 category: "food-hacks"
 managed: true
 featured: true
+draft: false
 badge: "Verify first"
-keywords: ["Starbucks", "GoPuff", "STARBUCKS10", "coffee", "promo code", "food delivery"]
+keywords: ["Starbucks","GoPuff","STARBUCKS10","coffee","promo code","food delivery"]
 published: 2026-07-11
 updated: 2026-07-11
 readTime: "3 min"
@@ -49,8 +50,6 @@ If the full discount applies, the Starbucks item subtotal may be reduced by as m
 - Do not assume the code will work for every account or location.
 
 ## Account and promo rules
-
-Use the offer only on an account that is genuinely eligible. Do not create duplicate accounts or use tools to bypass account, location, or redemption limits.
 
 Retailers can cancel orders, revoke credits, or restrict accounts when promo terms are abused.
 
