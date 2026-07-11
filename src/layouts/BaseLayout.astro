@@ -5,7 +5,7 @@ import '../styles/home-compact.css';
 import Sidebar from '../components/Sidebar.astro';
 import MobileHeader from '../components/MobileHeader.astro';
 import Footer from '../components/Footer.astro';
-import { SITE, type CategoryKey } from '../config';
+import { ACTIVE_THEME, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
 
 interface Props {
   title?: string;
@@ -19,17 +19,18 @@ interface Props {
 const {
   title = SITE.title,
   description = SITE.description,
-  image = '/og-card.svg',
+  image = SITE.shareImage,
   activeCategory = 'all',
   article = false,
   noindex = false,
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.siteUrl);
 const ogImage = new URL(image, SITE.siteUrl);
+const themeVariables = `--lime:${ACTIVE_THEME.accent};--lime-soft:${ACTIVE_THEME.soft};`;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" style={themeVariables}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -52,7 +53,7 @@ const ogImage = new URL(image, SITE.siteUrl);
     <meta name="twitter:image" content={ogImage} />
     <title>{title}</title>
   </head>
-  <body>
+  <body class={`density-${SITE_SETTINGS.theme.density}`}>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <Sidebar activeCategory={activeCategory} />
     <MobileHeader />
