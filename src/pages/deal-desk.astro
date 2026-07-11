@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import '../styles/deal-desk.css';
+import '../styles/deal-desk-control-polish.css';
 ---
 
 <BaseLayout
@@ -45,18 +46,44 @@ import '../styles/deal-desk.css';
           <span class="desk-kicker">Method control</span>
           <h2>Current operations</h2>
         </div>
-        <div class="desk-top-actions">
-          <button type="button" class="desk-button desk-button-muted" data-refresh>Refresh</button>
-          <button type="button" class="desk-button desk-button-muted" data-logout>Lock desk</button>
-          <button type="button" class="desk-button desk-button-primary" data-new-method>+ New method</button>
+
+        <div class="desk-top-actions" aria-label="Deal Desk actions">
+          <button type="button" class="desk-action-button desk-action-primary" data-new-method>
+            <span class="desk-action-icon" aria-hidden="true">+</span>
+            <span class="desk-action-copy"><strong>New method</strong><small>Add a guide</small></span>
+          </button>
+          <button type="button" class="desk-action-button" data-refresh>
+            <span class="desk-action-icon" aria-hidden="true">↻</span>
+            <span class="desk-action-copy"><strong>Refresh</strong><small>Reload data</small></span>
+          </button>
+          <button type="button" class="desk-action-button desk-action-lock" data-logout>
+            <span class="desk-action-icon" aria-hidden="true">⌁</span>
+            <span class="desk-action-copy"><strong>Lock desk</strong><small>End session</small></span>
+          </button>
         </div>
       </div>
 
-      <div class="desk-stats" aria-label="Method status summary">
-        <article><span>Active</span><strong data-stat-active>0</strong></article>
-        <article><span>Expiring soon</span><strong data-stat-expiring>0</strong></article>
-        <article><span>Paused</span><strong data-stat-paused>0</strong></article>
-        <article><span>Expired</span><strong data-stat-expired>0</strong></article>
+      <div class="desk-stats" role="group" aria-label="Filter methods by current status">
+        <button type="button" class="desk-stat-button status-active" data-stat-filter="active" aria-pressed="false">
+          <span class="desk-stat-label"><i></i>Active</span>
+          <strong data-stat-active>0</strong>
+          <small>View methods <b>→</b></small>
+        </button>
+        <button type="button" class="desk-stat-button status-expiring" data-stat-filter="expiring" aria-pressed="false">
+          <span class="desk-stat-label"><i></i>Expiring soon</span>
+          <strong data-stat-expiring>0</strong>
+          <small>View methods <b>→</b></small>
+        </button>
+        <button type="button" class="desk-stat-button status-paused" data-stat-filter="paused" aria-pressed="false">
+          <span class="desk-stat-label"><i></i>Paused</span>
+          <strong data-stat-paused>0</strong>
+          <small>View methods <b>→</b></small>
+        </button>
+        <button type="button" class="desk-stat-button status-expired" data-stat-filter="expired" aria-pressed="false">
+          <span class="desk-stat-label"><i></i>Expired</span>
+          <strong data-stat-expired>0</strong>
+          <small>View methods <b>→</b></small>
+        </button>
       </div>
 
       <div class="desk-workspace">
@@ -204,11 +231,11 @@ import '../styles/deal-desk.css';
             <input type="search" placeholder="Search title, app, code..." data-picker-search />
           </label>
           <nav class="desk-picker-filters" aria-label="Filter methods">
-            <button type="button" class="active" data-picker-filter="all">All methods <b data-filter-count="all">0</b></button>
-            <button type="button" data-picker-filter="active">Active <b data-filter-count="active">0</b></button>
-            <button type="button" data-picker-filter="expiring">Expiring soon <b data-filter-count="expiring">0</b></button>
-            <button type="button" data-picker-filter="paused">Paused <b data-filter-count="paused">0</b></button>
-            <button type="button" data-picker-filter="expired">Expired <b data-filter-count="expired">0</b></button>
+            <button type="button" class="active" data-picker-filter="all" aria-pressed="true">All methods <b data-filter-count="all">0</b></button>
+            <button type="button" data-picker-filter="active" aria-pressed="false">Active <b data-filter-count="active">0</b></button>
+            <button type="button" data-picker-filter="expiring" aria-pressed="false">Expiring soon <b data-filter-count="expiring">0</b></button>
+            <button type="button" data-picker-filter="paused" aria-pressed="false">Paused <b data-filter-count="paused">0</b></button>
+            <button type="button" data-picker-filter="expired" aria-pressed="false">Expired <b data-filter-count="expired">0</b></button>
           </nav>
           <button type="button" class="desk-picker-new" data-new-method>+ Create new method</button>
         </aside>
