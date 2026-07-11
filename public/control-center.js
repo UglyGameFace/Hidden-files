@@ -4,6 +4,7 @@ const cc$$ = (selector, root = document) => [...root.querySelectorAll(selector)]
 const control = {
   root: cc$('[data-control-center]'),
   form: cc$('[data-site-settings-form]'),
+  loginForm: cc$('[data-login-form]'),
   sectionTitle: cc$('[data-cc-section-title]'),
   sectionDescription: cc$('[data-cc-section-description]'),
   saveState: cc$('[data-cc-save-state]'),
@@ -30,9 +31,12 @@ const controlState = {
   activeSection: 'methods',
   lastEditPath: '',
   lastEditAt: 0,
+  previewDevice: 'phone',
 };
 
-const LOCAL_DRAFT_KEY = 'lobby-control-center-draft-v1';
+const LOCAL_DRAFT_KEY = 'lobby-control-center-draft-v2';
+const STALE_DRAFT_KEY = 'lobby-control-center-stale-draft-v2';
+const PREVIEW_DEVICE_KEY = 'lobby-control-center-preview-device';
 const accentValues = {
   lime: '#b7ff3c',
   cyan: '#55dff4',
@@ -46,6 +50,30 @@ function deepClone(value) {
 
 function stable(value) {
   return JSON.stringify(value);
+}
+
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Draft recovery is helpful but must never block editing.
+  }
+}
+
+function safeStorageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore storage restrictions.
+  }
 }
 
 function getPath(object, path) {
@@ -64,6 +92,30 @@ function setPath(object, path, value) {
   current[parts.at(-1)] = value;
 }
 
+function closeControlModals() {
+  if (control.preview) {
+    control.preview.hidden = true;
+    control.preview.setAttribute('aria-hidden', 'true');
+  }
+  if (control.publishConfirm) {
+    control.publishConfirm.hidden = true;
+    control.publishConfirm.setAttribute('aria-hidden', 'true');
+  }
+  document.body.classList.remove('cc-modal-open');
+}
+
+function lockControlCenter() {
+  closeControlModals();
+  controlState.loaded = false;
+  controlState.loading = false;
+  const app = cc$('[data-desk-app]');
+  const login = cc$('[data-login-panel]');
+  if (app) app.hidden = true;
+  if (login) login.hidden = false;
+  control.root?.classList.remove('is-unlocked');
+  updateSaveState('Session locked');
+}
+
 async function controlApi(path, options = {}) {
   const response = await fetch(path, {
     credentials: 'same-origin',
@@ -74,7 +126,13 @@ async function controlApi(path, options = {}) {
     },
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`);
+  if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('lobby-session-expired'));
+      lockControlCenter();
+    }
+    throw new Error(payload.error || `Request failed (${response.status}).`);
+  }
   return payload;
 }
 
@@ -96,12 +154,16 @@ function setText(selector, value) {
 }
 
 function setSection(section) {
-  controlState.activeSection = section;
+  const target = cc$(`[data-control-tab="${CSS.escape(section)}"]`);
+  const resolved = target ? section : 'methods';
+  controlState.activeSection = resolved;
+
   cc$$('[data-control-panel]').forEach((panel) => {
-    panel.hidden = panel.dataset.controlPanel !== section;
+    panel.hidden = panel.dataset.controlPanel !== resolved;
   });
+
   cc$$('[data-control-tab]').forEach((button) => {
-    const selected = button.dataset.controlTab === section;
+    const selected = button.dataset.controlTab === resolved;
     button.classList.toggle('active', selected);
     button.setAttribute('aria-pressed', String(selected));
     if (selected) {
@@ -109,15 +171,19 @@ function setSection(section) {
       if (control.sectionDescription) control.sectionDescription.textContent = button.dataset.description || '';
     }
   });
-  history.replaceState({}, '', `${window.location.pathname}#${section}`);
+
+  history.replaceState({}, '', `${window.location.pathname}#${resolved}`);
 }
 
 function saveLocalDraft() {
-  if (!controlState.dirty || !controlState.draft) {
-    localStorage.removeItem(LOCAL_DRAFT_KEY);
+  if (!controlState.dirty || !controlState.draft || !controlState.published) {
+    safeStorageRemove(LOCAL_DRAFT_KEY);
     return;
   }
-  localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
+
+  safeStorageSet(LOCAL_DRAFT_KEY, JSON.stringify({
+    version: 2,
+    baseFingerprint: stable(controlState.published),
     settings: controlState.draft,
     savedAt: new Date().toISOString(),
   }));
@@ -141,6 +207,7 @@ function updateSaveState(detailOverride = '') {
       ? 'Working'
       : controlState.dirty ? 'Unpublished draft' : 'Published';
   }
+
   if (control.saveDetail) {
     control.saveDetail.textContent = detailOverride || (
       controlState.loading
@@ -166,12 +233,13 @@ function pushUndo(force = false, path = '') {
     if (controlState.undo.length > 50) controlState.undo.shift();
     controlState.redo = [];
   }
+
   controlState.lastEditPath = path;
   controlState.lastEditAt = now;
 }
 
 function mutateSetting(path, value, { forceUndo = false } = {}) {
-  if (!controlState.draft) return;
+  if (!controlState.draft || controlState.loading) return;
   pushUndo(forceUndo, path);
   setPath(controlState.draft, path, value);
   syncControls();
@@ -181,7 +249,8 @@ function mutateSetting(path, value, { forceUndo = false } = {}) {
 
 function inputValue(element) {
   if (element instanceof HTMLInputElement && element.type === 'number') {
-    return Number.parseInt(element.value || '0', 10);
+    const parsed = Number.parseInt(element.value || '0', 10);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
   return element.value;
 }
@@ -214,6 +283,12 @@ function syncControls() {
 
   const accent = accentValues[controlState.draft.theme?.accentPreset] || accentValues.lime;
   document.documentElement.style.setProperty('--cc-preview-accent', accent);
+}
+
+function escapePreview(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[character]);
 }
 
 function renderPreview() {
@@ -262,35 +337,40 @@ function renderPreview() {
   }
 }
 
-function escapePreview(value) {
-  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
-  })[character]);
-}
-
 function openPreview() {
-  if (!control.preview) return;
+  if (!control.preview || controlState.loading) return;
   renderPreview();
   control.preview.hidden = false;
+  control.preview.setAttribute('aria-hidden', 'false');
   document.body.classList.add('cc-modal-open');
+  requestAnimationFrame(() => cc$('[data-cc-close-preview]', control.preview)?.focus());
 }
 
 function closePreview() {
-  if (control.preview) control.preview.hidden = true;
+  if (control.preview) {
+    control.preview.hidden = true;
+    control.preview.setAttribute('aria-hidden', 'true');
+  }
   document.body.classList.remove('cc-modal-open');
 }
 
 function setPreviewDevice(device) {
+  const allowed = new Set(['phone', 'tablet', 'desktop']);
+  const resolved = allowed.has(device) ? device : 'phone';
+  controlState.previewDevice = resolved;
+  safeStorageSet(PREVIEW_DEVICE_KEY, resolved);
+
   if (!control.previewFrame) return;
   control.previewFrame.classList.remove('device-phone', 'device-tablet', 'device-desktop');
-  control.previewFrame.classList.add(`device-${device}`);
+  control.previewFrame.classList.add(`device-${resolved}`);
   cc$$('[data-preview-device]').forEach((button) => {
-    button.classList.toggle('active', button.dataset.previewDevice === device);
+    button.classList.toggle('active', button.dataset.previewDevice === resolved);
+    button.setAttribute('aria-pressed', String(button.dataset.previewDevice === resolved));
   });
 }
 
 function undoDraft() {
-  if (!controlState.undo.length || !controlState.draft) return;
+  if (!controlState.undo.length || !controlState.draft || controlState.loading) return;
   controlState.redo.push(deepClone(controlState.draft));
   controlState.draft = controlState.undo.pop();
   populateForm();
@@ -298,7 +378,7 @@ function undoDraft() {
 }
 
 function redoDraft() {
-  if (!controlState.redo.length || !controlState.draft) return;
+  if (!controlState.redo.length || !controlState.draft || controlState.loading) return;
   controlState.undo.push(deepClone(controlState.draft));
   controlState.draft = controlState.redo.pop();
   populateForm();
@@ -306,21 +386,25 @@ function redoDraft() {
 }
 
 function discardDraft() {
-  if (!controlState.published) return;
+  if (!controlState.published || controlState.loading) return;
   controlState.draft = deepClone(controlState.published);
   controlState.undo = [];
   controlState.redo = [];
-  localStorage.removeItem(LOCAL_DRAFT_KEY);
+  safeStorageRemove(LOCAL_DRAFT_KEY);
   populateForm();
   updateSaveState('Draft discarded');
   controlToast('Unpublished website changes were discarded.');
 }
 
 async function publishDraft() {
-  if (!controlState.dirty || !controlState.draft) return;
+  if (!controlState.dirty || !controlState.draft || controlState.loading) return;
   controlState.loading = true;
+  if (control.publishConfirm) {
+    control.publishConfirm.hidden = true;
+    control.publishConfirm.setAttribute('aria-hidden', 'true');
+  }
+  document.body.classList.remove('cc-modal-open');
   updateSaveState('Publishing through GitHub and Vercel');
-  if (control.publishConfirm) control.publishConfirm.hidden = true;
 
   try {
     const output = await controlApi('/api/control-center-settings', {
@@ -329,9 +413,11 @@ async function publishDraft() {
     });
     controlState.published = deepClone(output.settings);
     controlState.draft = deepClone(output.settings);
+    controlState.sha = output.commit || controlState.sha;
     controlState.undo = [];
     controlState.redo = [];
-    localStorage.removeItem(LOCAL_DRAFT_KEY);
+    safeStorageRemove(LOCAL_DRAFT_KEY);
+    safeStorageRemove(STALE_DRAFT_KEY);
     populateForm();
     controlToast(output.message || 'Website changes published.');
     updateSaveState('Vercel deployment started');
@@ -344,29 +430,46 @@ async function publishDraft() {
   }
 }
 
-async function loadSettings() {
-  if (controlState.loading || controlState.loaded) return;
+function recoverLocalDraft(publishedSettings) {
+  const local = safeStorageGet(LOCAL_DRAFT_KEY);
+  if (!local) return deepClone(publishedSettings);
+
+  try {
+    const saved = JSON.parse(local);
+    if (!saved?.settings) {
+      safeStorageRemove(LOCAL_DRAFT_KEY);
+      return deepClone(publishedSettings);
+    }
+
+    const currentFingerprint = stable(publishedSettings);
+    if (saved.baseFingerprint === currentFingerprint) {
+      const time = saved.savedAt ? new Date(saved.savedAt).toLocaleString() : 'earlier';
+      controlToast(`Recovered your unpublished draft from ${time}.`);
+      return saved.settings;
+    }
+
+    safeStorageSet(STALE_DRAFT_KEY, local);
+    safeStorageRemove(LOCAL_DRAFT_KEY);
+    controlToast('A draft from an older published version was preserved separately instead of overwriting newer site changes.', 'error');
+  } catch {
+    safeStorageRemove(LOCAL_DRAFT_KEY);
+  }
+
+  return deepClone(publishedSettings);
+}
+
+async function loadSettings({ force = false } = {}) {
+  if (controlState.loading || (controlState.loaded && !force)) return;
   controlState.loading = true;
   updateSaveState('Loading website settings');
+
   try {
     const output = await controlApi('/api/control-center-settings');
     controlState.published = deepClone(output.settings);
-    controlState.draft = deepClone(output.settings);
+    controlState.draft = recoverLocalDraft(output.settings);
     controlState.sha = output.sha;
-
-    const local = localStorage.getItem(LOCAL_DRAFT_KEY);
-    if (local) {
-      try {
-        const saved = JSON.parse(local);
-        if (saved?.settings && stable(saved.settings) !== stable(output.settings)) {
-          controlState.draft = saved.settings;
-          controlToast('Recovered your unpublished local draft.');
-        }
-      } catch {
-        localStorage.removeItem(LOCAL_DRAFT_KEY);
-      }
-    }
-
+    controlState.undo = [];
+    controlState.redo = [];
     controlState.loaded = true;
     populateForm();
     updateSaveState();
@@ -376,6 +479,13 @@ async function loadSettings() {
   } finally {
     controlState.loading = false;
     updateSaveState();
+  }
+}
+
+function normalizeUnlockButton() {
+  const button = cc$('button[type="submit"]', control.loginForm);
+  if (button && button.textContent.trim() === 'Unlock Deal Desk') {
+    button.textContent = 'Unlock Control Center';
   }
 }
 
@@ -412,23 +522,31 @@ control.undo?.addEventListener('click', undoDraft);
 control.redo?.addEventListener('click', redoDraft);
 control.discard?.addEventListener('click', discardDraft);
 control.publish?.addEventListener('click', () => {
-  if (control.publishConfirm) {
-    control.publishConfirm.hidden = false;
-    document.body.classList.add('cc-modal-open');
-  }
+  if (!control.publishConfirm || !controlState.dirty || controlState.loading) return;
+  control.publishConfirm.hidden = false;
+  control.publishConfirm.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('cc-modal-open');
+  requestAnimationFrame(() => cc$('[data-cc-confirm-publish]', control.publishConfirm)?.focus());
 });
+
 cc$('[data-cc-cancel-publish]')?.addEventListener('click', () => {
-  if (control.publishConfirm) control.publishConfirm.hidden = true;
+  if (control.publishConfirm) {
+    control.publishConfirm.hidden = true;
+    control.publishConfirm.setAttribute('aria-hidden', 'true');
+  }
   document.body.classList.remove('cc-modal-open');
 });
+
 cc$('[data-cc-confirm-publish]')?.addEventListener('click', publishDraft);
 
 control.preview?.addEventListener('click', (event) => {
   if (event.target === control.preview) closePreview();
 });
+
 control.publishConfirm?.addEventListener('click', (event) => {
   if (event.target === control.publishConfirm) {
     control.publishConfirm.hidden = true;
+    control.publishConfirm.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('cc-modal-open');
   }
 });
@@ -440,21 +558,48 @@ document.addEventListener('keydown', (event) => {
     if (event.shiftKey) redoDraft();
     else undoDraft();
   }
+
   if (event.key === 'Escape') {
     if (control.preview && !control.preview.hidden) closePreview();
     if (control.publishConfirm && !control.publishConfirm.hidden) {
       control.publishConfirm.hidden = true;
+      control.publishConfirm.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('cc-modal-open');
     }
   }
 });
 
+window.addEventListener('beforeunload', (event) => {
+  if (!controlState.dirty || controlState.loading) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+
+window.addEventListener('pagehide', saveLocalDraft);
+window.addEventListener('lobby-session-expired', lockControlCenter);
+
 const requestedSection = window.location.hash.replace('#', '');
-if (cc$(`[data-control-tab="${CSS.escape(requestedSection)}"]`)) setSection(requestedSection);
-else setSection('methods');
+setSection(requestedSection || 'methods');
+setPreviewDevice(safeStorageGet(PREVIEW_DEVICE_KEY) || 'phone');
+normalizeUnlockButton();
+
+if (control.loginForm) {
+  const loginButtonObserver = new MutationObserver(normalizeUnlockButton);
+  loginButtonObserver.observe(control.loginForm, { childList: true, subtree: true, characterData: true });
+}
 
 if (control.root?.classList.contains('is-unlocked')) loadSettings();
+
 const unlockObserver = new MutationObserver(() => {
-  if (control.root?.classList.contains('is-unlocked')) loadSettings();
+  const unlocked = control.root?.classList.contains('is-unlocked');
+  if (unlocked) {
+    loadSettings({ force: !controlState.loaded });
+  } else {
+    closeControlModals();
+    controlState.loaded = false;
+  }
 });
-if (control.root) unlockObserver.observe(control.root, { attributes: true, attributeFilter: ['class'] });
+
+if (control.root) {
+  unlockObserver.observe(control.root, { attributes: true, attributeFilter: ['class'] });
+}
