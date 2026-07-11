@@ -1,0 +1,77 @@
+.desk-modal-backdrop { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(2,4,5,.78); padding: 1rem; backdrop-filter: blur(9px); }
+.desk-picker { display: flex; width: min(72rem,100%); max-height: min(50rem,calc(100vh - 2rem)); flex-direction: column; overflow: hidden; border: 1px solid #33404a; border-radius: 1rem; background: #0d1114; box-shadow: 0 35px 100px rgba(0,0,0,.55); }
+.desk-picker > header { display: flex; align-items: center; justify-content: space-between; gap: 2rem; border-bottom: 1px solid var(--line); padding: 1.25rem 1.4rem; }
+.desk-picker h2 { margin: .45rem 0 0; font-size: 2rem; letter-spacing: -.05em; text-transform: uppercase; }
+.desk-icon-button { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border: 1px solid var(--line); border-radius: .5rem; background: var(--panel-2); color: var(--muted); cursor: pointer; font-size: 1.4rem; }
+.desk-picker-layout { display: grid; min-height: 0; grid-template-columns: 18rem minmax(0,1fr); flex: 1; }
+.desk-picker-layout > aside { display: flex; min-height: 0; flex-direction: column; gap: .8rem; border-right: 1px solid var(--line); padding: 1rem; }
+.desk-picker-search { display: flex; min-height: 3rem; align-items: center; gap: .6rem; border: 1px solid var(--line); border-radius: .5rem; background: #080b0d; padding: 0 .75rem; }
+.desk-picker-search span { color: var(--muted); }
+.desk-picker-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); }
+.desk-picker-filters { display: grid; gap: .35rem; }
+.desk-picker-filters button { display: flex; min-height: 2.75rem; align-items: center; justify-content: space-between; border: 1px solid transparent; border-radius: .45rem; background: transparent; color: var(--muted); padding: .7rem .75rem; cursor: pointer; font: 700 .64rem/1 var(--mono); text-transform: uppercase; }
+.desk-picker-filters button b { display: grid; min-width: 1.5rem; height: 1.5rem; place-items: center; border-radius: 99px; background: var(--panel-3); color: var(--muted-2); font-size: .58rem; }
+.desk-picker-filters button.active { border-color: rgba(183,255,60,.22); background: var(--lime-soft); color: var(--lime); }
+.desk-picker-new { margin-top: auto; min-height: 2.8rem; border: 1px solid rgba(183,255,60,.25); border-radius: .5rem; background: var(--lime-soft); color: var(--lime); cursor: pointer; font: 750 .62rem/1 var(--mono); text-transform: uppercase; }
+.desk-picker-results { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 1rem; }
+.desk-picker-result-head { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .7rem; color: var(--muted); font: 650 .6rem/1 var(--mono); text-transform: uppercase; }
+.desk-method-list { display: grid; min-height: 0; gap: .55rem; overflow-y: auto; padding-right: .2rem; }
+.desk-method-option { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: .85rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--panel); color: inherit; padding: .9rem; cursor: pointer; text-align: left; transition: border-color .18s,transform .18s,background .18s; }
+.desk-method-option:hover { transform: translateY(-2px); border-color: rgba(183,255,60,.3); background: var(--panel-2); }
+.method-status-dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--lime); box-shadow: 0 0 9px rgba(183,255,60,.5); }
+.status-paused .method-status-dot { background: var(--amber); box-shadow: 0 0 9px rgba(255,189,74,.45); }
+.status-expired .method-status-dot { background: #ff6961; box-shadow: 0 0 9px rgba(255,105,97,.45); }
+.is-expiring .method-status-dot { background: var(--amber); box-shadow: 0 0 9px rgba(255,189,74,.45); }
+.method-option-copy { display: grid; min-width: 0; gap: .25rem; }
+.method-option-copy small { color: var(--lime); font: 650 .55rem/1 var(--mono); text-transform: uppercase; }
+.method-option-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.method-option-copy em { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: .7rem; line-height: 1.35; font-style: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.method-option-meta { display: grid; justify-items: end; gap: .25rem; text-align: right; }
+.method-option-meta b { font: 700 .58rem/1 var(--mono); text-transform: uppercase; }
+.method-option-meta small { color: var(--muted-2); font-size: .6rem; }
+.method-option-meta i { color: var(--lime); font: 700 .56rem/1 var(--mono); font-style: normal; text-transform: uppercase; }
+.desk-picker-empty { display: grid; min-height: 18rem; place-items: center; align-content: center; text-align: center; }
+.desk-picker-empty p { margin: .4rem 0 0; color: var(--muted); }
+.desk-picker > footer { display: flex; justify-content: flex-end; border-top: 1px solid var(--line); padding: .8rem 1rem; }
+.desk-picker > footer button, .desk-confirm button { min-height: 2.65rem; border: 1px solid var(--line); border-radius: .45rem; background: var(--panel-2); color: var(--muted); padding: .7rem .9rem; cursor: pointer; font: 700 .62rem/1 var(--mono); text-transform: uppercase; }
+.desk-confirm { width: min(28rem,100%); border: 1px solid #3d454b; border-radius: .9rem; background: var(--panel); padding: 1.5rem; text-align: center; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
+.desk-confirm-mark { display: grid; width: 3rem; height: 3rem; place-items: center; margin: 0 auto 1rem; border-radius: 50%; background: rgba(255,105,97,.1); color: #ff7d76; font: 800 1.2rem/1 var(--mono); }
+.desk-confirm h2 { margin: 0; font-size: 1.5rem; }
+.desk-confirm p { margin: .7rem 0 1.25rem; color: var(--muted); line-height: 1.55; }
+.desk-confirm > div { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.desk-confirm button.danger { border-color: rgba(255,105,97,.3); background: rgba(255,105,97,.12); color: #ff8983; }
+.desk-toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 300; max-width: min(28rem,calc(100% - 2rem)); border: 1px solid rgba(183,255,60,.3); border-radius: .6rem; background: #111713; color: #dfffc0; padding: .9rem 1rem; box-shadow: 0 20px 60px rgba(0,0,0,.4); font-size: .78rem; }
+.desk-toast[data-type="error"] { border-color: rgba(255,105,97,.35); background: #1b1111; color: #ffaaa5; }
+body.desk-modal-open { overflow: hidden; }
+@media (max-width: 1100px) {
+  .desk-workspace { grid-template-columns: 1fr; }
+  .desk-selection-panel { position: static; }
+  .desk-control-grid { grid-template-columns: repeat(3,1fr); }
+}
+@media (max-width: 760px) {
+  .desk-hero { align-items: start; flex-direction: column; padding: 3rem 1.1rem; }
+  .desk-system-card { width: 100%; }
+  .desk-login { margin: 2rem auto; }
+  .desk-login form { grid-template-columns: 1fr; }
+  .desk-app { padding: 2.5rem .75rem 4rem; }
+  .desk-topbar { align-items: stretch; flex-direction: column; }
+  .desk-top-actions { justify-content: stretch; }
+  .desk-top-actions .desk-button { flex: 1; }
+  .desk-stats { grid-template-columns: repeat(2,1fr); }
+  .desk-editor-heading { align-items: stretch; flex-direction: column; }
+  .desk-field-grid { grid-template-columns: 1fr; padding: 1rem; }
+  .desk-field-wide { grid-column: auto; }
+  .desk-category-picker { grid-template-columns: 1fr; }
+  .desk-control-grid { grid-template-columns: repeat(2,1fr); }
+  .desk-savebar { align-items: stretch; flex-direction: column; }
+  .desk-modal-backdrop { align-items: end; padding: 0; }
+  .desk-picker { width: 100%; max-height: 94vh; border-radius: 1rem 1rem 0 0; }
+  .desk-picker-layout { grid-template-columns: 1fr; overflow-y: auto; }
+  .desk-picker-layout > aside { border-right: 0; border-bottom: 1px solid var(--line); }
+  .desk-picker-filters { grid-template-columns: repeat(2,1fr); }
+  .desk-picker-new { margin-top: 0; }
+  .desk-picker-results { min-height: 22rem; }
+  .desk-method-option { grid-template-columns: auto minmax(0,1fr); }
+  .method-option-meta { grid-column: 2; justify-items: start; text-align: left; }
+  .desk-confirm { border-radius: 1rem 1rem 0 0; }
+}
