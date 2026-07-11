@@ -5,6 +5,21 @@
   display: none;
 }
 
+.console-mobile-summary {
+  display: none;
+}
+
+/* A closed native details element must still behave like the original desktop terminal. */
+@media (min-width: 768px) {
+  .hero-console:not([open]) > .console-bar {
+    display: flex;
+  }
+
+  .hero-console:not([open]) > .console-body {
+    display: block;
+  }
+}
+
 @media (max-width: 767px) {
   .hero-section {
     gap: 0;
@@ -61,7 +76,94 @@
   }
 
   .hero-console {
+    display: block;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+    margin-top: 1rem;
+    overflow: hidden;
+    transform: none;
+    border-radius: .65rem;
+  }
+
+  .console-mobile-summary {
+    display: flex;
+    min-height: 3.45rem;
+    align-items: center;
+    gap: .7rem;
+    padding: .7rem .8rem;
+    cursor: pointer;
+    list-style: none;
+    background: linear-gradient(180deg, var(--panel-2), #0b0e11);
+    user-select: none;
+  }
+
+  .console-mobile-summary::-webkit-details-marker {
     display: none;
+  }
+
+  .console-mobile-led {
+    width: .55rem;
+    height: .55rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 11px rgba(183,255,60,.62);
+  }
+
+  .console-mobile-copy {
+    display: grid;
+    min-width: 0;
+    gap: .18rem;
+  }
+
+  .console-mobile-copy strong {
+    color: var(--text);
+    font: 800 .65rem/1 var(--mono);
+    letter-spacing: .035em;
+    text-transform: uppercase;
+  }
+
+  .console-mobile-copy small {
+    color: var(--muted-2);
+    font: 650 .52rem/1 var(--mono);
+    letter-spacing: .045em;
+    text-transform: uppercase;
+  }
+
+  .console-mobile-summary > b {
+    margin-left: auto;
+    color: var(--lime);
+    font: 800 1rem/1 var(--mono);
+    transition: transform .18s ease;
+  }
+
+  .hero-console[open] .console-mobile-summary > b {
+    transform: rotate(180deg);
+  }
+
+  .hero-console > .console-bar {
+    display: none !important;
+  }
+
+  .hero-console:not([open]) > .console-body {
+    display: none;
+  }
+
+  .hero-console[open] > .console-body {
+    display: block;
+    border-top: 1px solid var(--line);
+    padding: .65rem .85rem .75rem;
+    background: rgba(8,11,13,.78);
+  }
+
+  .hero-console .console-body p {
+    margin: .36rem 0;
+    font-size: .63rem;
+  }
+
+  .hero-console .console-divider {
+    margin: .65rem 0;
   }
 
   .category-strip {

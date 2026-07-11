@@ -8,6 +8,7 @@ import { CATEGORIES, SITE } from '../config';
 const hacks = (await getCollection('hacks', ({ data }) => data.managed && !data.draft))
   .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order);
 const featured = hacks.filter((hack) => hack.data.featured).slice(0, 3);
+const methodWord = hacks.length === 1 ? 'METHOD' : 'METHODS';
 const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((counts, key) => {
   counts[key] = hacks.filter((hack) => hack.data.category === key).length;
   return counts;
@@ -32,7 +33,15 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
       </div>
     </div>
 
-    <div class="hero-console" aria-label="Guide library summary">
+    <details class="hero-console" data-mobile-console>
+      <summary class="console-mobile-summary">
+        <span class="console-mobile-led" aria-hidden="true"></span>
+        <span class="console-mobile-copy">
+          <strong><span data-console-method-count>{hacks.length}</span> ACTIVE <span data-console-method-word>{methodWord}</span></strong>
+          <small>System ready · tap for details</small>
+        </span>
+        <b aria-hidden="true">⌄</b>
+      </summary>
       <div class="console-bar"><span></span><span></span><span></span><small>LOBBY_INTEL.exe</small></div>
       <div class="console-body">
         <p><span class="console-prompt">$</span> loading guide index...</p>
@@ -42,7 +51,7 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
         <div class="console-divider"></div>
         <p class="console-dim">STATUS <span>READY</span></p>
       </div>
-    </div>
+    </details>
   </section>
 
   <section class="category-strip" aria-label="Guide categories">
@@ -118,6 +127,8 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
   const count = document.querySelector('[data-result-count]');
   const empty = document.querySelector('[data-empty-state]');
   const clear = document.querySelector('[data-clear-search]');
+  const consoleMethodCount = document.querySelector('[data-console-method-count]');
+  const consoleMethodWord = document.querySelector('[data-console-method-word]');
   let activeFilter = 'all';
   let liveStatuses = {};
 
@@ -141,6 +152,16 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
     const hours = Math.ceil(minutes / 60);
     if (hours < 48) return `Ends in ${hours}h`;
     return `Ends in ${Math.ceil(hours / 24)}d`;
+  }
+
+  function updateConsoleSummary() {
+    const activeCount = cards.reduce((total, card) => {
+      if (!(card instanceof HTMLElement)) return total;
+      const entry = card.dataset.guideId ? liveStatuses[card.dataset.guideId] : null;
+      return total + (effectiveStatus(entry) === 'active' ? 1 : 0);
+    }, 0);
+    if (consoleMethodCount) consoleMethodCount.textContent = String(activeCount);
+    if (consoleMethodWord) consoleMethodWord.textContent = activeCount === 1 ? 'METHOD' : 'METHODS';
   }
 
   function applyLiveStatuses() {
@@ -178,6 +199,7 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
         badge.classList.add('live-active');
       }
     });
+    updateConsoleSummary();
   }
 
   function applyFilters() {
