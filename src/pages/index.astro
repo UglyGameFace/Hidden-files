@@ -3,12 +3,9 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HackCard from '../components/HackCard.astro';
 import Icon from '../components/Icon.astro';
-import dealStatus from '../data/deal-status.json';
 import { CATEGORIES, SITE } from '../config';
 
-const registeredGuideIds = new Set(Object.keys(dealStatus));
-const hacks = (await getCollection('hacks', ({ data }) => !data.draft))
-  .filter((hack) => registeredGuideIds.has(hack.id))
+const hacks = (await getCollection('hacks', ({ data }) => data.managed && !data.draft))
   .sort((a, b) => Number(b.data.featured) - Number(a.data.featured) || a.data.order - b.data.order);
 const featured = hacks.filter((hack) => hack.data.featured).slice(0, 3);
 const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((counts, key) => {
