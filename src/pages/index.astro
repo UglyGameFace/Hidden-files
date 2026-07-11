@@ -15,7 +15,7 @@ const categoryCounts = Object.keys(CATEGORIES).reduce<Record<string, number>>((c
   counts[key] = hacks.filter((hack) => hack.data.category === key).length;
   return counts;
 }, {});
-const trustIcons = ['shield', 'spark', 'clock'];
+const trustIcons = ['shield', 'spark', 'clock'] as const;
 ---
 
 <BaseLayout>
