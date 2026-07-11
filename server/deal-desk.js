@@ -218,6 +218,7 @@ export function parseGuideFile(id, raw) {
     title: String(data.title || id),
     description: String(data.description || ''),
     category: CATEGORIES.has(data.category) ? data.category : 'retail-deals',
+    managed: Boolean(data.managed),
     featured: Boolean(data.featured),
     draft: Boolean(data.draft),
     badge: String(data.badge || ''),
@@ -265,6 +266,7 @@ export function validateGuide(input) {
     title,
     description,
     category,
+    managed: true,
     featured: Boolean(input.featured),
     draft: Boolean(input.draft),
     badge: String(input.badge || '').trim().slice(0, 36),
@@ -287,6 +289,7 @@ export function composeGuideFile(guide) {
     `title: ${quoted(guide.title)}`,
     `description: ${quoted(guide.description)}`,
     `category: ${quoted(guide.category)}`,
+    'managed: true',
     `featured: ${guide.featured ? 'true' : 'false'}`,
     `draft: ${guide.draft ? 'true' : 'false'}`,
   ];
