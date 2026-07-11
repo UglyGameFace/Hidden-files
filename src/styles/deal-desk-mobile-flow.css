@@ -18,8 +18,19 @@
   .deal-desk .desk-top-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
     gap: .5rem;
     margin-top: .75rem;
+  }
+
+  /* Reset the older mobile rule that forced New Method to span the full row. */
+  .deal-desk .desk-top-actions [data-new-method],
+  .deal-desk .desk-top-actions [data-refresh],
+  .deal-desk .desk-top-actions [data-logout] {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: stretch;
+    justify-self: stretch;
   }
 
   .deal-desk .desk-action-button {
