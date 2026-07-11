@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro check && astro build",
-    "preview": "astro preview",
-    "check": "astro check"
+    "audit": "node tools/audit-site.mjs",
+    "check": "npm run audit && astro check",
+    "build": "npm run audit && astro check && astro build",
+    "preview": "astro preview"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.20",
