@@ -8,6 +8,7 @@ const E = {
   picker: $('[data-picker-backdrop]'), search: $('[data-picker-search]'), list: $('[data-method-list]'), pickerEmpty: $('[data-picker-empty]'),
   pickerCount: $('[data-picker-result-count]'), confirm: $('[data-confirm-backdrop]'), confirmTitle: $('[data-confirm-title]'),
   confirmCopy: $('[data-confirm-copy]'), confirmGo: $('[data-confirm-go]'), toast: $('[data-desk-toast]'), feature: $('[data-feature-toggle]'), draft: $('[data-draft-toggle]'),
+  customExpiry: $('[data-custom-expiry]'),
 };
 const S = { guides: [], selectedId: null, working: null, category: 'food-hacks', featured: false, draft: false, filter: 'all', confirm: null };
 
@@ -28,6 +29,7 @@ function expiring(g) { const d = g?.live?.expiresAt ? Date.parse(g.live.expiresA
 function remain(iso) { const d = Date.parse(iso) - Date.now(); if (d <= 0) return 'Expired now'; const m = Math.ceil(d / 60000); if (m < 60) return `Expires in ${m}m`; const h = Math.ceil(m / 60); return h < 48 ? `Expires in ${h}h` : `Expires in ${Math.ceil(h / 24)}d`; }
 function label(g) { return status(g) === 'expired' ? 'Expired' : status(g) === 'paused' ? 'Paused' : expiring(g) ? 'Expiring soon' : 'Active'; }
 function esc(v) { return String(v ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' })[c]); }
+function localExpiryValue(iso) { if (!iso) return ''; const date = new Date(iso); if (Number.isNaN(date.getTime())) return ''; const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000); return local.toISOString().slice(0,16); }
 
 function renderStats() {
   const counts = {
@@ -40,20 +42,36 @@ function renderStats() {
   for (const key of ['active','expiring','paused','expired']) { const el = $(`[data-stat-${key}]`); if (el) el.textContent = counts[key]; }
   $$('[data-filter-count]').forEach(el => { el.textContent = counts[el.dataset.filterCount] ?? 0; });
 }
-function passes(g) {
-  if (S.filter === 'expiring') return expiring(g);
-  if (S.filter === 'active') return status(g) === 'active' && !expiring(g);
-  return S.filter === 'all' || status(g) === S.filter;
+function groupKey(g) {
+  if (status(g) === 'expired') return 'expired';
+  if (status(g) === 'paused') return 'paused';
+  if (expiring(g)) return 'expiring';
+  return 'active';
+}
+function optionMarkup(g) {
+  return `<button type="button" class="desk-method-option status-${status(g)}${expiring(g)?' is-expiring':''}" data-method-id="${esc(g.id)}">
+    <span class="method-status-dot"></span><span class="method-option-copy"><small>${esc(g.category.replaceAll('-',' '))}</small><strong>${esc(g.title)}</strong><em>${esc(g.description)}</em></span>
+    <span class="method-option-meta"><b>${esc(label(g))}</b><small>${g.live?.expiresAt?esc(remain(g.live.expiresAt)):'No auto-expiration'}</small><i>Choose →</i></span></button>`;
 }
 function renderPicker() {
   if (!E.list) return;
   const q = E.search?.value.trim().toLowerCase() || '';
-  const rows = S.guides.filter(g => passes(g) && (!q || [g.title,g.description,g.id,g.category,...(g.keywords||[])].join(' ').toLowerCase().includes(q)));
-  E.list.innerHTML = rows.map(g => `<button type="button" class="desk-method-option status-${status(g)}${expiring(g)?' is-expiring':''}" data-method-id="${esc(g.id)}">
-    <span class="method-status-dot"></span><span class="method-option-copy"><small>${esc(g.category.replaceAll('-',' '))}</small><strong>${esc(g.title)}</strong><em>${esc(g.description)}</em></span>
-    <span class="method-option-meta"><b>${esc(label(g))}</b><small>${g.live?.expiresAt?esc(remain(g.live.expiresAt)):'No auto-expiration'}</small><i>Choose →</i></span></button>`).join('');
-  if (E.pickerCount) E.pickerCount.textContent = `${rows.length} method${rows.length===1?'':'s'}`;
-  if (E.pickerEmpty) E.pickerEmpty.hidden = rows.length !== 0;
+  const searched = S.guides.filter(g => !q || [g.title,g.description,g.id,g.category,...(g.keywords||[])].join(' ').toLowerCase().includes(q));
+  const definitions = [
+    ['active', 'Active'],
+    ['expiring', 'Expiring soon'],
+    ['paused', 'Paused'],
+    ['expired', 'Expired'],
+  ];
+  const visible = S.filter === 'all' ? definitions : definitions.filter(([key]) => key === S.filter);
+  const groups = visible.map(([key, title]) => ({ key, title, rows: searched.filter(g => groupKey(g) === key) })).filter(group => group.rows.length);
+  const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
+  E.list.innerHTML = groups.map(group => `<section class="desk-method-group" data-method-group="${group.key}">
+    <div class="desk-method-group-title"><span>${esc(group.title)}</span><b>${group.rows.length}</b></div>
+    <div class="desk-method-group-list">${group.rows.map(optionMarkup).join('')}</div>
+  </section>`).join('');
+  if (E.pickerCount) E.pickerCount.textContent = `${total} method${total===1?'':'s'}`;
+  if (E.pickerEmpty) E.pickerEmpty.hidden = total !== 0;
   $$('[data-method-id]', E.list).forEach(b => b.onclick = () => select(b.dataset.methodId));
 }
 function toggle(el, active, yes, no) { if (!el) return; el.classList.toggle('active',active); el.ariaPressed=String(active); const b=$('b',el); if(b)b.textContent=active?yes:no; }
@@ -61,7 +79,7 @@ function renderLive(g) {
   const isNew = !g.id; if (E.quick) E.quick.hidden=isNew; if(E.selectedLive)E.selectedLive.hidden=isNew; if(isNew)return;
   const st=status(g); if(E.selectedLive)E.selectedLive.dataset.status=st; if(E.liveDot)E.liveDot.dataset.status=st;
   if(E.liveLabel)E.liveLabel.textContent=label(g); const details=[]; if(g.live?.expiresAt)details.push(remain(g.live.expiresAt)); if(g.live?.verifiedAt)details.push(`Verified ${new Date(g.live.verifiedAt).toLocaleString()}`);
-  if(E.liveDetail)E.liveDetail.textContent=details.join(' • ')||'No expiration set'; if(E.liveSummary)E.liveSummary.textContent=g.live?.expiresAt?remain(g.live.expiresAt):label(g);
+  if(E.liveDetail)E.liveDetail.textContent=details.join(' • ')||'No expiration set'; if(E.liveSummary)E.liveSummary.textContent=g.live?.expiresAt?remain(g.live.expiresAt):label(g); if(E.customExpiry)E.customExpiry.value=localExpiryValue(g.live?.expiresAt);
 }
 function populate(g) {
   if (!(E.editor instanceof HTMLFormElement)) return; S.working=structuredClone(g); S.selectedId=g.id||null; S.category=g.category||'food-hacks'; S.featured=!!g.featured; S.draft=!!g.draft;
@@ -86,6 +104,8 @@ $$('[data-picker-filter]').forEach(b=>b.onclick=()=>{S.filter=b.dataset.pickerFi
 $$('[data-category]').forEach(b=>b.onclick=()=>{S.category=b.dataset.category;$$('[data-category]').forEach(x=>x.classList.toggle('active',x===b));});
 E.feature?.addEventListener('click',()=>{S.featured=!S.featured;toggle(E.feature,S.featured,'Featured','Not featured');});E.draft?.addEventListener('click',()=>{S.draft=!S.draft;toggle(E.draft,S.draft,'Hidden draft','Public');});
 $$('[data-extend-hours]').forEach(b=>b.onclick=async()=>{try{const h=Number(b.dataset.extendHours);await setLive('active',new Date(Date.now()+h*3600000).toISOString(),new Date().toISOString());}catch(e){notify(e.message,'error');}});
+$('[data-set-custom-expiry]')?.addEventListener('click',async()=>{try{if(!E.customExpiry?.value)throw new Error('Choose an expiration date and time.');const when=new Date(E.customExpiry.value);if(Number.isNaN(when.getTime()))throw new Error('That expiration time is invalid.');if(when.getTime()<=Date.now())throw new Error('Choose a future expiration time.');await setLive('active',when.toISOString(),new Date().toISOString());}catch(e){notify(e.message,'error');}});
+$('[data-clear-expiry]')?.addEventListener('click',async()=>{try{await setLive('active',null,new Date().toISOString());}catch(e){notify(e.message,'error');}});
 $$('[data-status-action]').forEach(b=>b.onclick=async()=>{const a=b.dataset.statusAction;if(a==='expire')return openConfirm('Expire this method now?',`${S.working?.title||'This method'} will disappear from the public library immediately.`,async()=>{closeConfirm();try{await setLive('expired',new Date().toISOString(),S.working?.live?.verifiedAt||null);}catch(e){notify(e.message,'error');}},'Expire now');try{if(a==='pause')await setLive('paused',S.working?.live?.expiresAt||null,S.working?.live?.verifiedAt||null);if(a==='verify'){const x=S.working?.live?.expiresAt&&Date.parse(S.working.live.expiresAt)>Date.now()?S.working.live.expiresAt:null;await setLive('active',x,new Date().toISOString());}}catch(e){notify(e.message,'error');}});
 E.confirmGo?.addEventListener('click',()=>S.confirm?.());$('[data-confirm-back]')?.addEventListener('click',closeConfirm);
 E.editor?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(E.editor),save=$('[data-save-method]');save.disabled=true;save.textContent='Saving...';try{const out=await api('/api/deal-desk-save',{method:'POST',body:JSON.stringify({id:S.selectedId||'',title:f.get('title'),description:f.get('description'),category:S.category,featured:S.featured,draft:S.draft,badge:f.get('badge'),readTime:f.get('readTime'),keywords:f.get('keywords'),order:f.get('order'),published:S.working?.published||new Date().toISOString().slice(0,10),body:f.get('body')})});S.selectedId=out.guide.id;notify(out.message);await load();}catch(err){notify(err.message,'error');}finally{save.disabled=false;save.textContent='Save method';}});
