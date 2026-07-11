@@ -38,8 +38,9 @@ STARBUCKS10
 
 If the full discount applies, the Starbucks item subtotal may be reduced by as much as $10. Depending on local fees and taxes, the final total may still be a few dollars rather than completely free.
 
-## Important checks
-
+## Important notes
+-CREATE NEW ACCOUNTS TO REPEAT THE DEAL!
+- Use a VPN and incognito mode to make multiple accounts.
 - Make sure the discount is visible before placing the order.
 - Check whether there is a minimum spend or item restriction.
 - Delivery fees, service fees, small-order fees, and tips may not be discounted.
