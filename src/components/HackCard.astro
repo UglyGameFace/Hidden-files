@@ -17,11 +17,18 @@ const searchable = [hack.data.title, hack.data.description, category.label, ...h
   class={`hack-card accent-${category.accent}`}
   data-hack-card
   data-category={hack.data.category}
+  data-guide-id={hack.id}
+  data-live-visible="true"
   data-search={searchable}
 >
   <div class="hack-card-topline">
     <span class="category-chip"><Icon name={category.icon} /> {category.label}</span>
-    {hack.data.badge && <span class="status-chip">{hack.data.badge}</span>}
+    <span
+      class="status-chip"
+      data-live-status-label
+      data-static-badge={hack.data.badge ?? ''}
+      hidden={!hack.data.badge}
+    >{hack.data.badge ?? ''}</span>
   </div>
   <div class="hack-card-body">
     <h3>{hack.data.title}</h3>
