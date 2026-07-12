@@ -11,6 +11,13 @@ interface Props {
 const { activeCategory = 'all' } = Astro.props;
 const currentPath = Astro.url.pathname;
 const guideLinks = await getPublicGuideLinks();
+const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
+  ? {
+      ...page,
+      label: SITE_SETTINGS.navigation.allHacksLabel,
+      description: SITE_SETTINGS.navigation.allHacksDescription,
+    }
+  : page);
 ---
 
 <aside class="site-sidebar" aria-label="Primary navigation">
@@ -18,7 +25,7 @@ const guideLinks = await getPublicGuideLinks();
 
   <nav class="sidebar-nav">
     <p class="sidebar-section-label">Pages</p>
-    {PUBLIC_PAGE_LINKS.map((page) => (
+    {pageLinks.map((page) => (
       <a
         class:list={['sidebar-link', 'sidebar-page-link', { active: page.id === 'home' && currentPath === '/' }]}
         href={page.href}
