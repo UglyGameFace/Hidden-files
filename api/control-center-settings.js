@@ -12,6 +12,10 @@ import {
   writeSiteSettings,
 } from '../server/site-settings.js';
 
+function withoutCategories(settings) {
+  return JSON.stringify({ ...settings, categories: {} });
+}
+
 export default {
   async fetch(request) {
     try {
@@ -31,15 +35,27 @@ export default {
         const body = await request.json().catch(() => ({}));
         const current = await readSiteSettings();
         const baseSha = body.baseSha ? String(body.baseSha) : null;
+        const requested = sanitizeSiteSettings(body.settings || body);
+        let clean = requested;
 
         if (baseSha && current.sha && baseSha !== current.sha) {
-          throw new HttpError(
-            409,
-            'The website changed in another tab or device. Refresh the Control Center before publishing so newer changes are not overwritten.',
-          );
+          const onlyCategoryRegistryChanged = withoutCategories(requested) === withoutCategories(current.settings);
+          if (!onlyCategoryRegistryChanged) {
+            throw new HttpError(
+              409,
+              'The website changed in another tab or device. Refresh the Control Center before publishing so newer changes are not overwritten.',
+            );
+          }
+
+          clean = sanitizeSiteSettings({
+            ...requested,
+            categories: {
+              ...current.settings.categories,
+              ...requested.categories,
+            },
+          });
         }
 
-        const clean = sanitizeSiteSettings(body.settings || body);
         const result = await writeSiteSettings(clean, current.sha);
         return json({
           settings: result.settings,

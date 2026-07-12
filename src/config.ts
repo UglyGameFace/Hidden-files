@@ -1,45 +1,80 @@
 import siteSettings from './data/site-settings.json';
 
-export const SITE_SETTINGS = siteSettings;
+export type CategoryIcon = 'loop' | 'food' | 'tag' | 'spark' | 'book' | 'shield';
+export type CategoryAccent = 'lime' | 'cyan' | 'amber' | 'violet';
+
+export interface CategoryDefinition {
+  label: string;
+  shortLabel: string;
+  description: string;
+  visible: boolean;
+  order: number;
+  icon: CategoryIcon;
+  accent: CategoryAccent;
+}
+
+const CATEGORY_ICONS = new Set<CategoryIcon>(['loop', 'food', 'tag', 'spark', 'book', 'shield']);
+const CATEGORY_ACCENTS = new Set<CategoryAccent>(['lime', 'cyan', 'amber', 'violet']);
+const FALLBACK_CATEGORY: CategoryDefinition = {
+  label: 'Other Methods',
+  shortLabel: 'Other',
+  description: 'Additional community methods and opportunities.',
+  visible: true,
+  order: 99,
+  icon: 'tag',
+  accent: 'lime',
+};
+
+export const SITE_SETTINGS = siteSettings as Omit<typeof siteSettings, 'categories'> & {
+  categories: Record<string, CategoryDefinition>;
+};
 
 export const SITE = {
-  name: siteSettings.branding.name,
-  productName: siteSettings.branding.productName,
-  brandMark: siteSettings.branding.brandMark,
-  tagline: siteSettings.branding.tagline,
-  title: siteSettings.seo.title,
-  description: siteSettings.seo.description,
-  shareImage: siteSettings.seo.shareImage,
+  name: SITE_SETTINGS.branding.name,
+  productName: SITE_SETTINGS.branding.productName,
+  brandMark: SITE_SETTINGS.branding.brandMark,
+  tagline: SITE_SETTINGS.branding.tagline,
+  title: SITE_SETTINGS.seo.title,
+  description: SITE_SETTINGS.seo.description,
+  shareImage: SITE_SETTINGS.seo.shareImage,
   discordInvite:
-    siteSettings.discord.inviteUrl ||
+    SITE_SETTINGS.discord.inviteUrl ||
     import.meta.env.PUBLIC_DISCORD_INVITE_URL ||
     'https://discord.gg/your-permanent-invite',
   siteUrl: import.meta.env.PUBLIC_SITE_URL ?? 'https://example.vercel.app',
 } as const;
 
-export const CATEGORIES = {
-  'cashback-loops': {
-    ...siteSettings.categories['cashback-loops'],
-    icon: 'loop',
-    accent: 'lime',
-  },
-  'food-hacks': {
-    ...siteSettings.categories['food-hacks'],
-    icon: 'food',
-    accent: 'amber',
-  },
-  'retail-deals': {
-    ...siteSettings.categories['retail-deals'],
-    icon: 'tag',
-    accent: 'cyan',
-  },
-} as const;
+export const CATEGORIES: Record<string, CategoryDefinition> = Object.fromEntries(
+  Object.entries(SITE_SETTINGS.categories).map(([key, category]) => [
+    key,
+    {
+      label: String(category.label || key),
+      shortLabel: String(category.shortLabel || category.label || key).slice(0, 20),
+      description: String(category.description || FALLBACK_CATEGORY.description),
+      visible: category.visible !== false,
+      order: Number.isFinite(Number(category.order)) ? Number(category.order) : 99,
+      icon: CATEGORY_ICONS.has(category.icon) ? category.icon : FALLBACK_CATEGORY.icon,
+      accent: CATEGORY_ACCENTS.has(category.accent) ? category.accent : FALLBACK_CATEGORY.accent,
+    },
+  ]),
+);
 
-export type CategoryKey = keyof typeof CATEGORIES;
+export type CategoryKey = string;
 
-export const CATEGORY_ENTRIES = (Object.entries(CATEGORIES) as [CategoryKey, (typeof CATEGORIES)[CategoryKey]][])
+export function getCategory(key: string): CategoryDefinition {
+  return CATEGORIES[key] ?? {
+    ...FALLBACK_CATEGORY,
+    label: key
+      .split('-')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ') || FALLBACK_CATEGORY.label,
+  };
+}
+
+export const CATEGORY_ENTRIES = Object.entries(CATEGORIES)
   .filter(([, category]) => category.visible)
-  .sort((a, b) => a[1].order - b[1].order);
+  .sort((a, b) => a[1].order - b[1].order || a[1].label.localeCompare(b[1].label));
 
 export const THEME_PRESETS = {
   lime: {

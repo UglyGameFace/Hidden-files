@@ -1,9 +1,13 @@
 import { HttpError, readRepoFile, writeRepoFile } from './deal-desk.js';
 
 export const SITE_SETTINGS_PATH = 'src/data/site-settings.json';
+export const BUILTIN_CATEGORY_KEYS = ['cashback-loops', 'food-hacks', 'retail-deals'];
+export const CATEGORY_ICON_PRESETS = ['loop', 'food', 'tag', 'spark', 'book', 'shield'];
+export const CATEGORY_ACCENT_PRESETS = ['lime', 'cyan', 'amber', 'violet'];
 
-const CATEGORY_KEYS = ['cashback-loops', 'food-hacks', 'retail-deals'];
-const ACCENT_PRESETS = new Set(['lime', 'cyan', 'amber', 'violet']);
+const CATEGORY_KEY = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
+const ACCENT_PRESETS = new Set(CATEGORY_ACCENT_PRESETS);
+const ICON_PRESETS = new Set(CATEGORY_ICON_PRESETS);
 const DENSITY_PRESETS = new Set(['compact', 'comfortable', 'spacious']);
 
 function text(value, fallback, max = 240, min = 0) {
@@ -40,18 +44,48 @@ function trustItems(value, fallback) {
   return cleaned.length === 3 ? cleaned : fallback;
 }
 
-function category(input, fallback) {
+export function safeCategoryKey(value) {
+  const key = String(value ?? '').trim();
+  return CATEGORY_KEY.test(key) ? key : '';
+}
+
+function categoryLabelFromKey(key) {
+  return key
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+    .slice(0, 48) || 'Custom Category';
+}
+
+function customCategoryFallback(key, order = 99) {
+  const label = categoryLabelFromKey(key);
   return {
-    label: text(input?.label, fallback.label, 48, 2),
-    shortLabel: text(input?.shortLabel, fallback.shortLabel, 20, 1),
-    description: text(input?.description, fallback.description, 180, 4),
-    visible: bool(input?.visible, fallback.visible),
-    order: integer(input?.order, fallback.order, 1, 99),
+    label,
+    shortLabel: label.slice(0, 20),
+    description: `Methods organized under ${label}.`,
+    visible: true,
+    order,
+    icon: 'tag',
+    accent: 'lime',
+  };
+}
+
+export function sanitizeCategoryDefinition(input, fallback, key = '') {
+  const safeFallback = fallback || customCategoryFallback(key || 'custom-category');
+  return {
+    label: text(input?.label, safeFallback.label, 48, 2),
+    shortLabel: text(input?.shortLabel, safeFallback.shortLabel, 20, 1),
+    description: text(input?.description, safeFallback.description, 180, 4),
+    visible: bool(input?.visible, safeFallback.visible),
+    order: integer(input?.order, safeFallback.order, 1, 99),
+    icon: ICON_PRESETS.has(input?.icon) ? input.icon : safeFallback.icon,
+    accent: ACCENT_PRESETS.has(input?.accent) ? input.accent : safeFallback.accent,
   };
 }
 
 export const DEFAULT_SITE_SETTINGS = {
-  version: 1,
+  version: 2,
   branding: {
     name: 'The 420 Lobby',
     productName: 'Money & Food Hacks',
@@ -88,14 +122,17 @@ export const DEFAULT_SITE_SETTINGS = {
     'cashback-loops': {
       label: 'Cashback Loops', shortLabel: 'Cashback',
       description: 'Stack legitimate rewards without losing track of the math.', visible: true, order: 1,
+      icon: 'loop', accent: 'lime',
     },
     'food-hacks': {
       label: 'Food Hacks', shortLabel: 'Food',
       description: 'Stretch restaurant and grocery budgets with repeatable plays.', visible: true, order: 2,
+      icon: 'food', accent: 'amber',
     },
     'retail-deals': {
       label: 'Retail Deals', shortLabel: 'Retail',
       description: 'Find, verify, and act on real markdowns and price drops.', visible: true, order: 3,
+      icon: 'tag', accent: 'cyan',
     },
   },
   discord: {
@@ -128,7 +165,7 @@ export const DEFAULT_SITE_SETTINGS = {
 export function sanitizeSiteSettings(input = {}) {
   const defaults = DEFAULT_SITE_SETTINGS;
   const settings = {
-    version: 1,
+    version: 2,
     branding: {
       name: text(input.branding?.name, defaults.branding.name, 64, 2),
       productName: text(input.branding?.productName, defaults.branding.productName, 64, 2),
@@ -189,11 +226,23 @@ export function sanitizeSiteSettings(input = {}) {
     },
   };
 
-  for (const key of CATEGORY_KEYS) {
-    settings.categories[key] = category(input.categories?.[key], defaults.categories[key]);
+  const incoming = input.categories && typeof input.categories === 'object' ? input.categories : {};
+  const customKeys = Object.keys(incoming)
+    .map(safeCategoryKey)
+    .filter(Boolean)
+    .filter((key) => !BUILTIN_CATEGORY_KEYS.includes(key));
+  const keys = [...BUILTIN_CATEGORY_KEYS, ...new Set(customKeys)].slice(0, 30);
+
+  for (const [index, key] of keys.entries()) {
+    const fallback = defaults.categories[key] || customCategoryFallback(key, Math.min(99, index + 1));
+    settings.categories[key] = sanitizeCategoryDefinition(incoming[key], fallback, key);
   }
 
   return settings;
+}
+
+export function serializeSiteSettings(settings) {
+  return `${JSON.stringify(sanitizeSiteSettings(settings), null, 2)}\n`;
 }
 
 export async function readSiteSettings() {
@@ -210,10 +259,9 @@ export async function readSiteSettings() {
 
 export async function writeSiteSettings(settings, sha) {
   const clean = sanitizeSiteSettings(settings);
-  const content = `${JSON.stringify(clean, null, 2)}\n`;
   const result = await writeRepoFile(
     SITE_SETTINGS_PATH,
-    content,
+    `${JSON.stringify(clean, null, 2)}\n`,
     'Lobby Control Center: publish site settings',
     sha,
   );

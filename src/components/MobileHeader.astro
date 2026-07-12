@@ -1,7 +1,7 @@
 ---
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
-import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES, CATEGORIES } from '../config';
+import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES, getCategory } from '../config';
 import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
 interface Props {
@@ -59,7 +59,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
       <>
         <p class="mobile-nav-label">Guide pages</p>
         {guideLinks.map((guide) => {
-          const category = CATEGORIES[guide.category];
+          const category = getCategory(guide.category);
           return (
             <a
               class:list={['mobile-guide-link', { active: currentPath === guide.href }]}

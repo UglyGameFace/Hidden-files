@@ -1,7 +1,7 @@
 ---
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
-import { CATEGORY_ENTRIES, CATEGORIES, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
+import { CATEGORY_ENTRIES, getCategory, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
 import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
 interface Props {
@@ -52,7 +52,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
       <>
         <p class="sidebar-section-label">Guide pages</p>
         {guideLinks.map((guide) => {
-          const category = CATEGORIES[guide.category];
+          const category = getCategory(guide.category);
           return (
             <a
               class:list={['sidebar-link', 'sidebar-guide-link', `accent-${category.accent}`, { active: currentPath === guide.href }]}

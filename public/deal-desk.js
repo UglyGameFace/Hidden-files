@@ -33,17 +33,36 @@ const elements = {
   featureToggle: $('[data-feature-toggle]'),
   draftToggle: $('[data-draft-toggle]'),
   customExpiry: $('[data-custom-expiry]'),
+  categoryPicker: $('[data-category-picker]'),
+  categoryCreator: $('[data-method-category-creator]'),
+  categoryCreateError: $('[data-method-category-error]'),
+  categoryLabel: $('[data-method-category-label]'),
+  categoryShort: $('[data-method-category-short]'),
+  categoryDescription: $('[data-method-category-description]'),
+  categoryIcon: $('[data-method-category-icon]'),
+  categoryAccent: $('[data-method-category-accent]'),
 };
 
 const state = {
   guides: [],
+  categories: {},
+  pendingCategories: {},
   selectedId: null,
   working: null,
-  category: 'food-hacks',
+  category: '',
   featured: false,
   draft: false,
   filter: 'all',
   confirmAction: null,
+};
+
+const CATEGORY_GLYPHS = {
+  loop: '↻',
+  food: '⌁',
+  tag: '◇',
+  spark: '✦',
+  book: '▤',
+  shield: '⬡',
 };
 
 async function api(path, options = {}) {
@@ -64,6 +83,36 @@ async function api(path, options = {}) {
   return data;
 }
 
+function settingsRuntime() {
+  if (!window.LobbySettingsRuntime) {
+    window.LobbySettingsRuntime = {
+      value: null,
+      promise: null,
+      async get(force = false) {
+        if (!force && this.value) return this.value;
+        if (!force && this.promise) return this.promise;
+        this.promise = api('/api/control-center-settings', { method: 'GET', headers: {} })
+          .then((output) => {
+            this.value = output;
+            window.dispatchEvent(new CustomEvent('lobby-settings-loaded', { detail: output }));
+            return output;
+          })
+          .finally(() => { this.promise = null; });
+        return this.promise;
+      },
+      set(output) {
+        this.value = output;
+        window.dispatchEvent(new CustomEvent('lobby-settings-loaded', { detail: output }));
+      },
+      clear() {
+        this.value = null;
+        this.promise = null;
+      },
+    };
+  }
+  return window.LobbySettingsRuntime;
+}
+
 function notify(message, type = 'ok') {
   if (!elements.toast) return;
   elements.toast.textContent = message;
@@ -79,6 +128,7 @@ function lockDesk() {
   if (elements.app) elements.app.hidden = true;
   if (elements.login) elements.login.hidden = false;
   elements.root?.classList.remove('is-unlocked');
+  settingsRuntime().clear();
   closePicker();
   closeConfirm();
 }
@@ -144,6 +194,119 @@ function escapeHtml(value) {
   })[character]);
 }
 
+function categorySlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+function categoryEntries() {
+  return Object.entries(state.categories)
+    .sort((left, right) => Number(left[1].order) - Number(right[1].order) || String(left[1].label).localeCompare(String(right[1].label)));
+}
+
+function defaultCategoryKey() {
+  if (state.categories['food-hacks']?.visible !== false) return 'food-hacks';
+  return categoryEntries().find(([, category]) => category.visible !== false)?.[0]
+    || categoryEntries()[0]?.[0]
+    || '';
+}
+
+function categoryDefinition(key) {
+  return state.categories[key] || {
+    label: key.replaceAll('-', ' '),
+    shortLabel: key.replaceAll('-', ' '),
+    description: 'Custom method category.',
+    visible: true,
+    order: 99,
+    icon: 'tag',
+    accent: 'lime',
+  };
+}
+
+function selectCategory(key) {
+  if (!key || !state.categories[key]) return;
+  state.category = key;
+  $$('[data-category]', elements.categoryPicker).forEach((button) => {
+    const active = button.dataset.category === key;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function renderCategoryPicker() {
+  if (!elements.categoryPicker) return;
+  const entries = categoryEntries().filter(([key, category]) => category.visible !== false || key === state.category);
+  elements.categoryPicker.innerHTML = entries.map(([key, category]) => `
+    <button type="button" class="accent-${escapeHtml(category.accent || 'lime')}" data-category="${escapeHtml(key)}" aria-pressed="${key === state.category}">
+      <span>${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)}</span>
+      <strong>${escapeHtml(category.label)}</strong>
+      <small>${escapeHtml(category.description)}${category.visible === false ? ' · hidden category' : ''}</small>
+    </button>
+  `).join('');
+  $$('[data-category]', elements.categoryPicker).forEach((button) => {
+    button.addEventListener('click', () => selectCategory(button.dataset.category));
+  });
+  selectCategory(state.category || defaultCategoryKey());
+}
+
+function showCategoryCreator(show) {
+  if (elements.categoryCreator) elements.categoryCreator.hidden = !show;
+  if (elements.categoryCreateError) elements.categoryCreateError.hidden = true;
+  if (show) elements.categoryLabel?.focus();
+}
+
+function clearCategoryCreator() {
+  if (elements.categoryLabel) elements.categoryLabel.value = '';
+  if (elements.categoryShort) elements.categoryShort.value = '';
+  if (elements.categoryDescription) elements.categoryDescription.value = '';
+  if (elements.categoryIcon) elements.categoryIcon.value = 'tag';
+  if (elements.categoryAccent) elements.categoryAccent.value = 'lime';
+  if (elements.categoryCreateError) elements.categoryCreateError.hidden = true;
+}
+
+function createPendingCategory() {
+  const label = elements.categoryLabel?.value.trim() || '';
+  const key = categorySlug(label);
+  const shortLabel = elements.categoryShort?.value.trim() || label.slice(0, 20);
+  const description = elements.categoryDescription?.value.trim() || '';
+  const error = elements.categoryCreateError;
+
+  const fail = (message) => {
+    if (error) {
+      error.textContent = message;
+      error.hidden = false;
+    }
+  };
+
+  if (label.length < 2) return fail('Enter a category name.');
+  if (!key) return fail('That name cannot create a safe category key.');
+  if (state.categories[key]) return fail('A category with that name already exists.');
+  if (description.length < 4) return fail('Add a short description so members know what belongs here.');
+
+  const orders = categoryEntries().map(([, category]) => Number(category.order) || 0);
+  const definition = {
+    label: label.slice(0, 48),
+    shortLabel: shortLabel.slice(0, 20) || label.slice(0, 20),
+    description: description.slice(0, 180),
+    visible: true,
+    order: Math.min(99, Math.max(1, ...orders) + 1),
+    icon: elements.categoryIcon?.value || 'tag',
+    accent: elements.categoryAccent?.value || 'lime',
+  };
+
+  state.categories[key] = definition;
+  state.pendingCategories[key] = definition;
+  state.category = key;
+  renderCategoryPicker();
+  clearCategoryCreator();
+  showCategoryCreator(false);
+  notify(`${definition.label} created locally. Save the method to publish both together.`);
+}
+
 function filterCounts() {
   return {
     all: state.guides.length,
@@ -189,10 +352,11 @@ function setPickerFilter(filter, { open = false } = {}) {
 }
 
 function methodOptionMarkup(guide) {
+  const category = categoryDefinition(guide.category);
   return `<button type="button" class="desk-method-option status-${methodStatus(guide)}${isExpiringSoon(guide) ? ' is-expiring' : ''}" data-method-id="${escapeHtml(guide.id)}">
     <span class="method-status-dot"></span>
     <span class="method-option-copy">
-      <small>${escapeHtml(guide.category.replaceAll('-', ' '))}</small>
+      <small>${escapeHtml(category.label)}</small>
       <strong>${escapeHtml(guide.title)}</strong>
       <em>${escapeHtml(guide.description)}</em>
     </span>
@@ -209,11 +373,14 @@ function renderPicker() {
 
   const search = elements.pickerSearch?.value.trim().toLowerCase() || '';
   const searched = state.guides.filter((guide) => {
+    const category = categoryDefinition(guide.category);
     const haystack = [
       guide.title,
       guide.description,
       guide.id,
       guide.category,
+      category.label,
+      category.shortLabel,
       ...(guide.keywords || []),
     ].join(' ').toLowerCase();
     return !search || haystack.includes(search);
@@ -245,9 +412,7 @@ function renderPicker() {
     </section>
   `).join('');
 
-  if (elements.pickerCount) {
-    elements.pickerCount.textContent = `${total} method${total === 1 ? '' : 's'}`;
-  }
+  if (elements.pickerCount) elements.pickerCount.textContent = `${total} method${total === 1 ? '' : 's'}`;
   if (elements.pickerEmpty) elements.pickerEmpty.hidden = total !== 0;
 
   $$('[data-method-id]', elements.methodList).forEach((button) => {
@@ -284,9 +449,7 @@ function renderLiveStatus(guide) {
       ? remainingLabel(guide.live.expiresAt)
       : statusLabel(guide);
   }
-  if (elements.customExpiry) {
-    elements.customExpiry.value = localExpiryValue(guide.live?.expiresAt);
-  }
+  if (elements.customExpiry) elements.customExpiry.value = localExpiryValue(guide.live?.expiresAt);
 }
 
 function populateEditor(guide) {
@@ -294,7 +457,7 @@ function populateEditor(guide) {
 
   state.working = structuredClone(guide);
   state.selectedId = guide.id || null;
-  state.category = guide.category || 'food-hacks';
+  state.category = state.categories[guide.category] ? guide.category : defaultCategoryKey();
   state.featured = Boolean(guide.featured);
   state.draft = Boolean(guide.draft);
 
@@ -325,12 +488,11 @@ function populateEditor(guide) {
     if (field) field.value = value;
   }
 
-  $$('[data-category]').forEach((button) => {
-    button.classList.toggle('active', button.dataset.category === state.category);
-  });
+  renderCategoryPicker();
   setToggle(elements.featureToggle, state.featured, 'Featured', 'Not featured');
   setToggle(elements.draftToggle, state.draft, 'Hidden draft', 'Public');
   renderLiveStatus(guide);
+  showCategoryCreator(false);
 
   if (elements.publicGuide) {
     elements.publicGuide.hidden = !guide.id;
@@ -353,7 +515,7 @@ function createNewMethod() {
     id: '',
     title: '',
     description: '',
-    category: 'food-hacks',
+    category: defaultCategoryKey(),
     featured: false,
     draft: false,
     badge: 'New',
@@ -379,9 +541,7 @@ function openPicker() {
 
 function closePicker() {
   if (elements.picker) elements.picker.hidden = true;
-  if (!elements.confirm || elements.confirm.hidden) {
-    document.body.classList.remove('desk-modal-open');
-  }
+  if (!elements.confirm || elements.confirm.hidden) document.body.classList.remove('desk-modal-open');
 }
 
 function openConfirm(title, copy, action, buttonText = 'Confirm') {
@@ -396,9 +556,7 @@ function openConfirm(title, copy, action, buttonText = 'Confirm') {
 function closeConfirm() {
   state.confirmAction = null;
   if (elements.confirm) elements.confirm.hidden = true;
-  if (!elements.picker || elements.picker.hidden) {
-    document.body.classList.remove('desk-modal-open');
-  }
+  if (!elements.picker || elements.picker.hidden) document.body.classList.remove('desk-modal-open');
 }
 
 async function setLiveStatus(status, expiresAt = null, verifiedAt = null) {
@@ -419,8 +577,15 @@ async function setLiveStatus(status, expiresAt = null, verifiedAt = null) {
 }
 
 async function loadGuides() {
-  const output = await api('/api/deal-desk-guides');
-  state.guides = output.guides || [];
+  const [guideOutput, settingsOutput] = await Promise.all([
+    api('/api/deal-desk-guides'),
+    settingsRuntime().get(),
+  ]);
+  state.guides = guideOutput.guides || [];
+  state.categories = structuredClone(settingsOutput.settings?.categories || {});
+  state.pendingCategories = {};
+  if (!state.category || !state.categories[state.category]) state.category = defaultCategoryKey();
+  renderCategoryPicker();
   renderStats();
   syncFilterControls();
   renderPicker();
@@ -464,7 +629,6 @@ elements.loginForm?.addEventListener('submit', async (event) => {
 $$('[data-open-picker]').forEach((button) => button.addEventListener('click', openPicker));
 $$('[data-close-picker]').forEach((button) => button.addEventListener('click', closePicker));
 $$('[data-new-method]').forEach((button) => button.addEventListener('click', createNewMethod));
-
 elements.pickerSearch?.addEventListener('input', renderPicker);
 
 $$('[data-picker-filter]').forEach((button) => {
@@ -472,19 +636,15 @@ $$('[data-picker-filter]').forEach((button) => {
 });
 
 $$('[data-stat-filter]').forEach((button) => {
-  button.addEventListener('click', () => {
-    setPickerFilter(button.dataset.statFilter, { open: true });
-  });
+  button.addEventListener('click', () => setPickerFilter(button.dataset.statFilter, { open: true }));
 });
 
-$$('[data-category]').forEach((button) => {
-  button.addEventListener('click', () => {
-    state.category = button.dataset.category;
-    $$('[data-category]').forEach((item) => {
-      item.classList.toggle('active', item === button);
-    });
-  });
+$('[data-open-method-category]')?.addEventListener('click', () => showCategoryCreator(true));
+$('[data-cancel-method-category]')?.addEventListener('click', () => {
+  clearCategoryCreator();
+  showCategoryCreator(false);
 });
+$('[data-create-method-category]')?.addEventListener('click', createPendingCategory);
 
 elements.featureToggle?.addEventListener('click', () => {
   state.featured = !state.featured;
@@ -500,11 +660,7 @@ $$('[data-extend-hours]').forEach((button) => {
   button.addEventListener('click', async () => {
     try {
       const hours = Number(button.dataset.extendHours);
-      await setLiveStatus(
-        'active',
-        new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
-        new Date().toISOString(),
-      );
+      await setLiveStatus('active', new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(), new Date().toISOString());
     } catch (error) {
       notify(error.message, 'error');
     }
@@ -541,11 +697,7 @@ $$('[data-status-action]').forEach((button) => {
         async () => {
           closeConfirm();
           try {
-            await setLiveStatus(
-              'expired',
-              new Date().toISOString(),
-              state.working?.live?.verifiedAt || null,
-            );
+            await setLiveStatus('expired', new Date().toISOString(), state.working?.live?.verifiedAt || null);
           } catch (error) {
             notify(error.message, 'error');
           }
@@ -557,11 +709,7 @@ $$('[data-status-action]').forEach((button) => {
 
     try {
       if (action === 'pause') {
-        await setLiveStatus(
-          'paused',
-          state.working?.live?.expiresAt || null,
-          state.working?.live?.verifiedAt || null,
-        );
+        await setLiveStatus('paused', state.working?.live?.expiresAt || null, state.working?.live?.verifiedAt || null);
       }
       if (action === 'verify') {
         const futureExpiry = state.working?.live?.expiresAt
@@ -596,6 +744,7 @@ elements.editor?.addEventListener('submit', async (event) => {
         title: form.get('title'),
         description: form.get('description'),
         category: state.category,
+        categoryDefinition: state.pendingCategories[state.category] || null,
         featured: state.featured,
         draft: state.draft,
         badge: form.get('badge'),
@@ -607,6 +756,16 @@ elements.editor?.addEventListener('submit', async (event) => {
       }),
     });
     state.selectedId = output.guide.id;
+    state.categories = structuredClone(output.categories || state.categories);
+    state.pendingCategories = {};
+    const runtimeValue = settingsRuntime().value;
+    if (runtimeValue?.settings) {
+      settingsRuntime().set({
+        ...runtimeValue,
+        settings: { ...runtimeValue.settings, categories: structuredClone(state.categories) },
+      });
+    }
+    renderCategoryPicker();
     notify(output.message);
     await loadGuides();
   } catch (error) {
@@ -620,8 +779,9 @@ elements.editor?.addEventListener('submit', async (event) => {
 });
 
 $('[data-refresh]')?.addEventListener('click', () => {
+  settingsRuntime().clear();
   loadGuides()
-    .then(() => notify('Deal Desk refreshed.'))
+    .then(() => notify('Control Center refreshed.'))
     .catch((error) => notify(error.message, 'error'));
 });
 
@@ -645,6 +805,7 @@ elements.confirm?.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (elements.confirm && !elements.confirm.hidden) closeConfirm();
+  else if (elements.categoryCreator && !elements.categoryCreator.hidden) showCategoryCreator(false);
   else closePicker();
 });
 
