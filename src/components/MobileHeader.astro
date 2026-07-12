@@ -1,7 +1,11 @@
 ---
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
-import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES } from '../config';
+import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES, CATEGORIES } from '../config';
+import { getPublicGuideLinks, OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS } from '../navigation';
+
+const currentPath = Astro.url.pathname;
+const guideLinks = await getPublicGuideLinks();
 ---
 
 <header class="mobile-header">
@@ -22,12 +26,46 @@ import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES } from '../config';
     <Brand />
     <button type="button" data-menu-close aria-label="Close navigation"><Icon name="close" /></button>
   </div>
+
   <nav class="mobile-drawer-nav">
-    <a href="/"><Icon name="home" /><span><strong>{SITE_SETTINGS.navigation.allHacksLabel}</strong><small>{SITE_SETTINGS.navigation.allHacksDescription}</small></span></a>
-    {CATEGORY_ENTRIES.map(([key, category]) => (
-      <a href={`/?category=${key}#library`}><Icon name={category.icon} /><span><strong>{category.label}</strong><small>{category.description}</small></span></a>
+    <p class="mobile-nav-label">Pages</p>
+    {PUBLIC_PAGE_LINKS.map((page) => (
+      <a class:list={{ active: page.id === 'home' && currentPath === '/' }} href={page.href}>
+        <Icon name={page.icon} />
+        <span><strong>{page.label}</strong><small>{page.description}</small></span>
+      </a>
     ))}
+
+    <p class="mobile-nav-label">{SITE_SETTINGS.navigation.browseLabel}</p>
+    {CATEGORY_ENTRIES.map(([key, category]) => (
+      <a href={`/?category=${key}#library`}>
+        <Icon name={category.icon} />
+        <span><strong>{category.label}</strong><small>{category.description}</small></span>
+      </a>
+    ))}
+
+    {guideLinks.length > 0 && (
+      <>
+        <p class="mobile-nav-label">Guide pages</p>
+        {guideLinks.map((guide) => {
+          const category = CATEGORIES[guide.category];
+          return (
+            <a class:list={['mobile-guide-link', { active: currentPath === guide.href }]} href={guide.href}>
+              <Icon name={category.icon} />
+              <span><strong>{guide.label}</strong><small>{guide.description}</small></span>
+            </a>
+          );
+        })}
+      </>
+    )}
+
+    <p class="mobile-nav-label">Owner</p>
+    <a class="mobile-owner-link" href={OWNER_PAGE_LINK.href}>
+      <Icon name={OWNER_PAGE_LINK.icon} />
+      <span><strong>{OWNER_PAGE_LINK.label}</strong><small>{OWNER_PAGE_LINK.description}</small></span>
+    </a>
   </nav>
+
   <div class="mobile-drawer-cta">
     <p>{SITE_SETTINGS.discord.mobileDescription}</p>
     <a class="discord-button" href={SITE.discordInvite} target="_blank" rel="noreferrer"><Icon name="discord" /> {SITE_SETTINGS.discord.sidebarButtonLabel}</a>
