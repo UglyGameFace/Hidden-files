@@ -67,6 +67,7 @@ const canonicalCss = [
   'src/styles/home-compact.css',
   'src/styles/site-settings.css',
   'src/styles/site-hardening.css',
+  'src/styles/navigation-buttons.css',
 ];
 for (const path of canonicalCss) {
   if (read(path).includes('!important')) fail(`${path} contains !important; fix specificity at the source.`);
@@ -89,6 +90,29 @@ if (new Set(panels).size !== panels.length) fail('Control Center has duplicate p
 for (const tab of tabs) if (!panels.includes(tab)) fail(`Tab has no matching panel: ${tab}`);
 for (const panel of panels) if (!tabs.includes(panel)) fail(`Panel has no matching tab: ${panel}`);
 
+const navigationRegistry = read('src/navigation.ts');
+for (const tab of tabs) {
+  if (!navigationRegistry.includes(`id: '${tab}'`)) fail(`Control Center section is missing from the shared navigation registry: ${tab}`);
+}
+for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideLinks', 'CONTROL_CENTER_SECTIONS']) {
+  if (!navigationRegistry.includes(`export const ${required}`) && !navigationRegistry.includes(`export async function ${required}`)) {
+    fail(`Shared navigation registry is missing: ${required}`);
+  }
+}
+
+const sidebar = read('src/components/Sidebar.astro');
+const mobileHeader = read('src/components/MobileHeader.astro');
+for (const [name, content] of [['Sidebar', sidebar], ['MobileHeader', mobileHeader]]) {
+  for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideLinks', 'data-guide-nav-id']) {
+    if (!content.includes(required)) fail(`${name} is not exposing required navigation source: ${required}`);
+  }
+}
+
+const baseLayout = read('src/layouts/BaseLayout.astro');
+for (const required of ['navigation-buttons.css', '/navigation-buttons.js']) {
+  if (!baseLayout.includes(required)) fail(`BaseLayout is missing navigation asset: ${required}`);
+}
+
 const settings = JSON.parse(read('src/data/site-settings.json'));
 for (const key of ['branding', 'homepage', 'navigation', 'categories', 'discord', 'footer', 'seo', 'theme']) {
   if (!settings[key] || typeof settings[key] !== 'object') fail(`site-settings.json is missing object: ${key}`);
@@ -100,7 +124,7 @@ if (JSON.stringify(categoryKeys) !== JSON.stringify(['cashback-loops', 'food-hac
 if (!['lime', 'cyan', 'amber', 'violet'].includes(settings.theme?.accentPreset)) fail('Unsupported accent preset.');
 if (!['compact', 'comfortable', 'spacious'].includes(settings.theme?.density)) fail('Unsupported density preset.');
 
-for (const path of ['public/deal-desk.js', 'public/control-center.js']) {
+for (const path of ['public/deal-desk.js', 'public/control-center.js', 'public/navigation-buttons.js']) {
   const result = spawnSync(process.execPath, ['--check', path], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) fail(`${path} failed syntax validation:\n${result.stderr.trim()}`);
 }
@@ -123,7 +147,8 @@ if (failures.length) {
 }
 
 passed.push(`${cssFiles.length} stylesheets have balanced blocks.`);
-passed.push(`${tabs.length} editor tabs map one-to-one with panels.`);
+passed.push(`${tabs.length} editor tabs map one-to-one with panels and the shared navigation registry.`);
+passed.push('Public page, guide-page, and owner buttons are wired into desktop and mobile navigation.');
 passed.push('Legacy Deal Desk overrides are absent and unreferenced.');
 passed.push('JavaScript syntax, draft recovery, concurrent publishing, and dynamic viewport safeguards passed.');
 console.log('\nSITE AUDIT PASSED\n');
