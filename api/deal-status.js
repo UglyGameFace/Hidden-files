@@ -17,7 +17,10 @@ export default {
       return json(
         { statuses, checkedAt: new Date().toISOString() },
         200,
-        { 'cache-control': 'public, s-maxage=5, stale-while-revalidate=30' },
+        {
+          'cache-control': 'public, max-age=0, s-maxage=15, stale-while-revalidate=120',
+          'x-status-revision': document.sha || 'empty',
+        },
       );
     } catch (error) {
       return handleError(error);
