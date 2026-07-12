@@ -99,9 +99,9 @@
   margin-top: .75rem;
 }
 
-/* The eight private sections must all be visible instead of hiding off-screen. */
+/* Higher specificity keeps all owner buttons visible regardless of bundle order. */
 @media (max-width: 1350px) {
-  .cc-section-picker {
+  .lobby-control-center .cc-section-picker {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     overflow: visible;
@@ -110,7 +110,7 @@
     padding: 0;
   }
 
-  .cc-section-picker button {
+  .lobby-control-center .cc-section-picker button {
     width: auto;
     min-width: 0;
     flex: initial;
@@ -118,13 +118,13 @@
 }
 
 @media (max-width: 900px) {
-  .cc-section-picker {
+  .lobby-control-center .cc-section-picker {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .cc-section-picker {
+  .lobby-control-center .cc-section-picker {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .45rem;
@@ -132,13 +132,13 @@
     padding: 0;
   }
 
-  .cc-section-picker button {
+  .lobby-control-center .cc-section-picker button {
     min-width: 0;
     min-height: 4.35rem;
   }
 
-  .cc-section-picker button strong,
-  .cc-section-picker button small {
+  .lobby-control-center .cc-section-picker button strong,
+  .lobby-control-center .cc-section-picker button small {
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -162,7 +162,7 @@
 }
 
 @media (max-width: 390px) {
-  .cc-section-picker {
+  .lobby-control-center .cc-section-picker {
     grid-template-columns: minmax(0, 1fr);
   }
 }
