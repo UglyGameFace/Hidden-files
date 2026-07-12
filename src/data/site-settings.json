@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "branding": {
     "name": "The 420 Lobby",
     "productName": "Money & Food Hacks",
@@ -42,21 +42,27 @@
       "shortLabel": "Cashback",
       "description": "Stack legitimate rewards without losing track of the math.",
       "visible": true,
-      "order": 1
+      "order": 1,
+      "icon": "loop",
+      "accent": "lime"
     },
     "food-hacks": {
       "label": "Food Hacks",
       "shortLabel": "Food",
       "description": "Stretch restaurant and grocery budgets with repeatable plays.",
       "visible": true,
-      "order": 2
+      "order": 2,
+      "icon": "food",
+      "accent": "amber"
     },
     "retail-deals": {
       "label": "Retail Deals",
       "shortLabel": "Retail",
       "description": "Find, verify, and act on real markdowns and price drops.",
       "visible": true,
-      "order": 3
+      "order": 3,
+      "icon": "tag",
+      "accent": "cyan"
     }
   },
   "discord": {
