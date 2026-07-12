@@ -1,0 +1,168 @@
+/* Public-page buttons and fully visible owner-section navigation. */
+
+.sidebar-nav {
+  gap: .28rem;
+}
+
+.sidebar-section-label:not(:first-child) {
+  margin-top: .8rem;
+}
+
+.sidebar-guide-link .sidebar-link-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sidebar-owner-link {
+  border-color: rgba(167, 139, 250, .22);
+  background: rgba(167, 139, 250, .045);
+}
+
+.sidebar-owner-link:hover,
+.sidebar-owner-link:focus-visible {
+  border-color: rgba(167, 139, 250, .45);
+  background: rgba(167, 139, 250, .09);
+}
+
+.sidebar-owner-link .sidebar-icon {
+  color: #b8a4ff;
+}
+
+.mobile-nav-label {
+  margin: .85rem .15rem .3rem;
+  color: var(--muted-2);
+  font: 750 .56rem/1 var(--mono);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.mobile-nav-label:first-child {
+  margin-top: 0;
+}
+
+.mobile-drawer-nav > a.active {
+  border-color: color-mix(in srgb, var(--lime) 32%, transparent);
+  background: var(--lime-soft);
+}
+
+.mobile-owner-link {
+  border-color: rgba(167, 139, 250, .24) !important;
+  background: rgba(167, 139, 250, .055) !important;
+}
+
+.mobile-owner-link > svg {
+  color: #b8a4ff;
+}
+
+.cc-command-actions > a,
+.desk-login-public-link {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 2.45rem;
+  align-items: center;
+  justify-content: center;
+  gap: .38rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--panel-2);
+  color: var(--muted);
+  padding: .58rem .68rem;
+  font: 750 .55rem/1.2 var(--mono);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.cc-command-actions > a:hover,
+.cc-command-actions > a:focus-visible,
+.desk-login-public-link:hover,
+.desk-login-public-link:focus-visible {
+  border-color: color-mix(in srgb, var(--lime) 35%, transparent);
+  color: var(--text);
+}
+
+.cc-command-actions > a b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-command-actions .cc-live-site-link {
+  border-color: color-mix(in srgb, var(--lime) 30%, transparent);
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.desk-login-public-link {
+  width: 100%;
+  margin-top: .75rem;
+}
+
+/* The eight private sections must all be visible instead of hiding off-screen. */
+@media (max-width: 1350px) {
+  .cc-section-picker {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+    margin-right: 0;
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .cc-section-picker button {
+    width: auto;
+    min-width: 0;
+    flex: initial;
+  }
+}
+
+@media (max-width: 900px) {
+  .cc-section-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .cc-section-picker {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem;
+    margin: 0 0 .7rem;
+    padding: 0;
+  }
+
+  .cc-section-picker button {
+    min-width: 0;
+    min-height: 4.35rem;
+  }
+
+  .cc-section-picker button strong,
+  .cc-section-picker button small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .cc-command-actions > a {
+    display: grid;
+    min-height: 3.35rem;
+    justify-items: center;
+    gap: .28rem;
+    padding: .42rem .22rem;
+  }
+
+  .cc-command-actions > a span {
+    font-size: .8rem;
+  }
+
+  .cc-command-actions > a b {
+    max-width: 100%;
+    font-size: .48rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .cc-section-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
