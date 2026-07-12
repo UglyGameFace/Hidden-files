@@ -2,15 +2,15 @@
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
 import { CATEGORY_ENTRIES, CATEGORIES, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
-import { getPublicGuideLinks, OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS } from '../navigation';
+import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
 interface Props {
   activeCategory?: CategoryKey | 'all';
+  guideLinks?: PublicGuideLink[];
 }
 
-const { activeCategory = 'all' } = Astro.props;
+const { activeCategory = 'all', guideLinks = [] } = Astro.props;
 const currentPath = Astro.url.pathname;
-const guideLinks = await getPublicGuideLinks();
 const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
   ? {
       ...page,
