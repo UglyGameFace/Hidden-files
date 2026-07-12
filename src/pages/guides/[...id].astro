@@ -5,20 +5,27 @@ import Icon from '../../components/Icon.astro';
 import { CATEGORIES, SITE } from '../../config';
 
 export async function getStaticPaths() {
-  const hacks = await getCollection('hacks', ({ data }) => data.managed && !data.draft);
-  return hacks.map((hack) => ({ params: { id: hack.id }, props: { hack } }));
+  const hacks = (await getCollection('hacks', ({ data }) => data.managed && !data.draft))
+    .sort((left, right) => left.data.order - right.data.order);
+
+  return hacks.map((hack) => ({
+    params: { id: hack.id },
+    props: {
+      hack,
+      related: hacks
+        .filter((item) => item.id !== hack.id && item.data.category === hack.data.category)
+        .slice(0, 3),
+    },
+  }));
 }
 
 interface Props {
   hack: CollectionEntry<'hacks'>;
+  related: CollectionEntry<'hacks'>[];
 }
-const { hack } = Astro.props;
+const { hack, related } = Astro.props;
 const { Content, headings } = await render(hack);
 const category = CATEGORIES[hack.data.category];
-const related = (await getCollection('hacks', ({ data }) => data.managed && !data.draft && data.category === hack.data.category))
-  .filter((item) => item.id !== hack.id)
-  .sort((a, b) => a.data.order - b.data.order)
-  .slice(0, 3);
 const formatDate = (date: Date) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 ---
 
