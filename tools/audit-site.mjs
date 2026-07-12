@@ -31,6 +31,18 @@ function balancedCss(path) {
   if (depth !== 0) fail(`${path} has unbalanced CSS braces (${depth}).`);
 }
 
+function firstRuleBody(css, selectorPattern) {
+  const match = css.match(new RegExp(`${selectorPattern.source}\\s*\\{([^}]*)\\}`));
+  return match?.[1] ?? '';
+}
+
+function cssOwners(cssFiles, selectors) {
+  return cssFiles.filter((path) => {
+    const css = read(path);
+    return selectors.some((selector) => css.includes(selector));
+  });
+}
+
 const legacyStyles = [
   'src/styles/deal-desk-overlay.css',
   'src/styles/deal-desk-control-polish.css',
@@ -74,11 +86,30 @@ for (const path of canonicalCss) {
 }
 
 const allCss = cssFiles.map(read).join('\n');
-if ((allCss.match(/\.desk-modal-backdrop\s*\{/g) || []).length !== 1) {
-  fail('The method modal backdrop must have exactly one canonical base selector.');
+const methodBackdropOwners = cssOwners(cssFiles, ['.desk-modal-backdrop']);
+if (methodBackdropOwners.length !== 1 || methodBackdropOwners[0] !== 'src/styles/method-manager.css') {
+  fail(`The method modal backdrop must be owned only by src/styles/method-manager.css. Found: ${methodBackdropOwners.join(', ') || 'none'}.`);
 }
-if ((allCss.match(/\.cc-preview-backdrop\s*,\s*\.cc-confirm-backdrop\s*\{/g) || []).length !== 1) {
-  fail('The Control Center modal backdrops must have exactly one canonical base selector.');
+
+const methodBackdropBase = firstRuleBody(
+  read('src/styles/method-manager.css'),
+  /\.desk-modal-backdrop/,
+);
+if (!/position:\s*fixed;/.test(methodBackdropBase) || !/inset:\s*0;/.test(methodBackdropBase)) {
+  fail('The method modal backdrop is missing its canonical fixed full-viewport base rule.');
+}
+
+const controlBackdropOwners = cssOwners(cssFiles, ['.cc-preview-backdrop', '.cc-confirm-backdrop']);
+if (controlBackdropOwners.length !== 1 || controlBackdropOwners[0] !== 'src/styles/control-center.css') {
+  fail(`The Control Center modal backdrops must be owned only by src/styles/control-center.css. Found: ${controlBackdropOwners.join(', ') || 'none'}.`);
+}
+
+const controlBackdropBase = firstRuleBody(
+  read('src/styles/control-center.css'),
+  /\.cc-preview-backdrop\s*,\s*\.cc-confirm-backdrop/,
+);
+if (!/position:\s*fixed;/.test(controlBackdropBase) || !/inset:\s*0;/.test(controlBackdropBase)) {
+  fail('The Control Center modal backdrops are missing their canonical fixed full-viewport base rule.');
 }
 
 const shell = read('src/components/LobbyControlCenter.astro');
@@ -147,6 +178,7 @@ if (failures.length) {
 }
 
 passed.push(`${cssFiles.length} stylesheets have balanced blocks.`);
+passed.push('Modal backdrops have one owning stylesheet each, with responsive overrides allowed inside that owner.');
 passed.push(`${tabs.length} editor tabs map one-to-one with panels and the shared navigation registry.`);
 passed.push('Public page, guide-page, and owner buttons are wired into desktop and mobile navigation.');
 passed.push('Legacy Deal Desk overrides are absent and unreferenced.');
