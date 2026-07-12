@@ -50,6 +50,7 @@ const guideLinks = await getPublicGuideLinks();
             <a
               class:list={['sidebar-link', 'sidebar-guide-link', `accent-${category.accent}`, { active: currentPath === guide.href }]}
               href={guide.href}
+              data-guide-nav-id={guide.id}
             >
               <span class="sidebar-icon"><Icon name={category.icon} /></span>
               <span class="sidebar-link-copy"><strong>{guide.label}</strong><small>{guide.description}</small></span>
