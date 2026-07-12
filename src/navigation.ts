@@ -37,7 +37,16 @@ export const CONTROL_CENTER_SECTIONS = [
   { id: 'appearance', number: '08', label: 'Appearance', short: 'Color & density', description: 'Choose safe highlight and spacing presets for every screen size.' },
 ] as const;
 
-export async function getPublicGuideLinks() {
+export interface PublicGuideLink {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  category: CategoryKey;
+  featured: boolean;
+}
+
+export async function getPublicGuideLinks(): Promise<PublicGuideLink[]> {
   const guides = await getCollection('hacks', ({ data }) => data.managed && !data.draft);
   return guides
     .sort((left, right) => Number(right.data.featured) - Number(left.data.featured) || left.data.order - right.data.order)
