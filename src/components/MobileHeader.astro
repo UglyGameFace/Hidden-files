@@ -2,7 +2,7 @@
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
 import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES, getCategory } from '../config';
-import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
+import { OWNER_PAGE_LINK, POST_METHOD_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
 interface Props {
   guideLinks?: PublicGuideLink[];
@@ -75,6 +75,10 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
     )}
 
     <p class="mobile-nav-label">Owner</p>
+    <a class="mobile-post-link" href={POST_METHOD_LINK.href}>
+      <Icon name={POST_METHOD_LINK.icon} />
+      <span><strong>{POST_METHOD_LINK.label}</strong><small>{POST_METHOD_LINK.description}</small></span>
+    </a>
     <a class="mobile-owner-link" href={OWNER_PAGE_LINK.href}>
       <Icon name={OWNER_PAGE_LINK.icon} />
       <span><strong>{OWNER_PAGE_LINK.label}</strong><small>{OWNER_PAGE_LINK.description}</small></span>
