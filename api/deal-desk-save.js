@@ -10,10 +10,18 @@ import {
   readStatusDocument,
   requireAuth,
   requireSameOrigin,
+  statusFileContent,
   validateGuide,
-  writeRepoFile,
-  writeStatusDocument,
+  writeRepoFiles,
 } from '../server/deal-desk.js';
+import {
+  readSiteSettings,
+  safeCategoryKey,
+  sanitizeCategoryDefinition,
+  sanitizeSiteSettings,
+  serializeSiteSettings,
+  SITE_SETTINGS_PATH,
+} from '../server/site-settings.js';
 
 export default {
   async fetch(request) {
@@ -23,15 +31,38 @@ export default {
       requireAuth(request);
 
       const body = await request.json().catch(() => ({}));
-      const guide = validateGuide(body);
-      const path = guidePath(guide.id);
-      const current = await readRepoFile(path, { allowMissing: true });
+      const categoryKey = safeCategoryKey(body.category);
+      const siteDocument = await readSiteSettings();
+      let siteSettings = siteDocument.settings;
+      let categoryCreated = false;
 
-      if (!current.sha && body.id) {
-        throw new HttpError(409, 'That guide no longer exists. Refresh the Deal Desk and try again.');
+      if (categoryKey && !siteSettings.categories[categoryKey]) {
+        if (!body.categoryDefinition || typeof body.categoryDefinition !== 'object') {
+          throw new HttpError(422, 'That category is not registered yet. Add its details or choose another category.');
+        }
+        const definition = sanitizeCategoryDefinition(body.categoryDefinition, null, categoryKey);
+        siteSettings = sanitizeSiteSettings({
+          ...siteSettings,
+          categories: {
+            ...siteSettings.categories,
+            [categoryKey]: definition,
+          },
+        });
+        categoryCreated = true;
       }
 
-      const statusDocument = await readStatusDocument();
+      const guide = validateGuide(body, Object.keys(siteSettings.categories));
+      const path = guidePath(guide.id);
+      const [current, statusDocument] = await Promise.all([
+        readRepoFile(path, { allowMissing: true }),
+        readStatusDocument(),
+      ]);
+
+      if (!current.sha && body.id) {
+        throw new HttpError(409, 'That guide no longer exists. Refresh the Control Center and try again.');
+      }
+
+      const files = [{ path, content: composeGuideFile(guide) }];
       if (!statusDocument.entries[guide.id]) {
         statusDocument.entries[guide.id] = {
           status: 'active',
@@ -39,29 +70,41 @@ export default {
           verifiedAt: new Date().toISOString(),
           note: '',
         };
-        const statusWrite = await writeStatusDocument(
-          statusDocument.entries,
-          statusDocument.sha,
-          `Deal Desk: register ${guide.id}`,
-        );
-        statusDocument.sha = statusWrite.content?.sha || statusDocument.sha;
+        files.push({
+          path: 'src/data/deal-status.json',
+          content: statusFileContent(statusDocument.entries),
+        });
+      }
+      if (categoryCreated) {
+        files.push({
+          path: SITE_SETTINGS_PATH,
+          content: serializeSiteSettings(siteSettings),
+        });
       }
 
-      const file = composeGuideFile(guide);
       const action = current.sha ? 'Update' : 'Add';
-      const result = await writeRepoFile(path, file, `${action} guide: ${guide.title}`, current.sha);
+      const result = await writeRepoFiles(
+        files,
+        categoryCreated
+          ? `${action} method and category: ${guide.title}`
+          : `${action} guide: ${guide.title}`,
+      );
       const savedGuide = {
         ...guide,
-        sha: result.content?.sha || current.sha || null,
+        sha: result.files[path] || current.sha || null,
         live: normalizeStatus(statusDocument.entries[guide.id]),
       };
 
       return json({
         guide: savedGuide,
+        categories: siteSettings.categories,
+        categoryCreated,
         commit: result.commit?.sha || null,
-        message: current.sha
-          ? 'Method saved. Vercel will rebuild the full guide page.'
-          : 'Method created. Vercel will publish it after the next build.',
+        message: categoryCreated
+          ? 'Category and method saved together. Vercel is publishing both in one build.'
+          : current.sha
+            ? 'Method saved. Vercel will rebuild the full guide page.'
+            : 'Method created. Vercel will publish it after the next build.',
       });
     } catch (error) {
       return handleError(error);
