@@ -6,6 +6,13 @@ import { getPublicGuideLinks, OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS } from '../navi
 
 const currentPath = Astro.url.pathname;
 const guideLinks = await getPublicGuideLinks();
+const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
+  ? {
+      ...page,
+      label: SITE_SETTINGS.navigation.allHacksLabel,
+      description: SITE_SETTINGS.navigation.allHacksDescription,
+    }
+  : page);
 ---
 
 <header class="mobile-header">
@@ -29,7 +36,7 @@ const guideLinks = await getPublicGuideLinks();
 
   <nav class="mobile-drawer-nav">
     <p class="mobile-nav-label">Pages</p>
-    {PUBLIC_PAGE_LINKS.map((page) => (
+    {pageLinks.map((page) => (
       <a class:list={{ active: page.id === 'home' && currentPath === '/' }} href={page.href}>
         <Icon name={page.icon} />
         <span><strong>{page.label}</strong><small>{page.description}</small></span>
