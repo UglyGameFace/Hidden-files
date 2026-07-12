@@ -47,9 +47,9 @@
   background: var(--lime-soft);
 }
 
-.mobile-owner-link {
-  border-color: rgba(167, 139, 250, .24) !important;
-  background: rgba(167, 139, 250, .055) !important;
+.mobile-drawer-nav > a.mobile-owner-link {
+  border-color: rgba(167, 139, 250, .24);
+  background: rgba(167, 139, 250, .055);
 }
 
 .mobile-owner-link > svg {
