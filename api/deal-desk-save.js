@@ -5,6 +5,7 @@ import {
   HttpError,
   json,
   methodNotAllowed,
+  normalizeStatus,
   readRepoFile,
   readStatusDocument,
   requireAuth,
@@ -38,19 +39,25 @@ export default {
           verifiedAt: new Date().toISOString(),
           note: '',
         };
-        await writeStatusDocument(
+        const statusWrite = await writeStatusDocument(
           statusDocument.entries,
           statusDocument.sha,
           `Deal Desk: register ${guide.id}`,
         );
+        statusDocument.sha = statusWrite.content?.sha || statusDocument.sha;
       }
 
       const file = composeGuideFile(guide);
       const action = current.sha ? 'Update' : 'Add';
       const result = await writeRepoFile(path, file, `${action} guide: ${guide.title}`, current.sha);
+      const savedGuide = {
+        ...guide,
+        sha: result.content?.sha || current.sha || null,
+        live: normalizeStatus(statusDocument.entries[guide.id]),
+      };
 
       return json({
-        guide,
+        guide: savedGuide,
         commit: result.commit?.sha || null,
         message: current.sha
           ? 'Method saved. Vercel will rebuild the full guide page.'
