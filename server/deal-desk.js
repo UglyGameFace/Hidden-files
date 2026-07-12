@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 const COOKIE_NAME = 'lobby_deal_desk';
 const STATUS_PATH = 'src/data/deal-status.json';
 const GUIDE_DIR = 'src/content/hacks';
-const CATEGORIES = new Set(['cashback-loops', 'food-hacks', 'retail-deals']);
+const CATEGORY_KEY = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
 
 export class HttpError extends Error {
   constructor(status, message, details) {
@@ -142,9 +142,17 @@ async function github(path, options = {}, needsToken = true) {
   return payload;
 }
 
-function repoPath(path) {
+function repoRoot() {
   const { owner, repo } = config();
-  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+}
+
+function repoPath(path) {
+  return `${repoRoot()}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+function branchPath(branch) {
+  return branch.split('/').map(encodeURIComponent).join('/');
 }
 
 export async function readRepoFile(path, { allowMissing = false, publicRead = false } = {}) {
@@ -184,6 +192,63 @@ export async function writeRepoFile(path, content, message, sha = null) {
   });
 }
 
+export async function writeRepoFiles(files, message) {
+  const { branch } = requireGitHubToken();
+  const updates = Array.isArray(files)
+    ? files.filter((file) => file?.path && typeof file.content === 'string')
+    : [];
+  if (!updates.length) throw new HttpError(422, 'No repository files were provided.');
+
+  const refName = branchPath(branch);
+  const reference = await github(`${repoRoot()}/git/ref/heads/${refName}`);
+  const baseCommitSha = reference?.object?.sha;
+  if (!baseCommitSha) throw new HttpError(502, 'GitHub did not return the current branch commit.');
+
+  const baseCommit = await github(`${repoRoot()}/git/commits/${encodeURIComponent(baseCommitSha)}`);
+  const baseTreeSha = baseCommit?.tree?.sha;
+  if (!baseTreeSha) throw new HttpError(502, 'GitHub did not return the current repository tree.');
+
+  const treeEntries = await Promise.all(updates.map(async (file) => {
+    const blob = await github(`${repoRoot()}/git/blobs`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ content: file.content, encoding: 'utf-8' }),
+    });
+    return {
+      path: file.path,
+      mode: '100644',
+      type: 'blob',
+      sha: blob.sha,
+    };
+  }));
+
+  const tree = await github(`${repoRoot()}/git/trees`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
+  });
+  const commit = await github(`${repoRoot()}/git/commits`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message, tree: tree.sha, parents: [baseCommitSha] }),
+  });
+
+  try {
+    await github(`${repoRoot()}/git/refs/heads/${refName}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sha: commit.sha, force: false }),
+    });
+  } catch (error) {
+    throw new HttpError(409, 'The repository changed while saving. Refresh and try again.', error?.details);
+  }
+
+  return {
+    commit,
+    files: Object.fromEntries(treeEntries.map((entry) => [entry.path, entry.sha])),
+  };
+}
+
 export async function deleteRepoFile(path, message, sha) {
   const { branch } = requireGitHubToken();
   return github(repoPath(path), {
@@ -217,7 +282,7 @@ export function parseGuideFile(id, raw) {
     id,
     title: String(data.title || id),
     description: String(data.description || ''),
-    category: CATEGORIES.has(data.category) ? data.category : 'retail-deals',
+    category: CATEGORY_KEY.test(String(data.category || '')) ? String(data.category) : 'retail-deals',
     managed: Boolean(data.managed),
     featured: Boolean(data.featured),
     draft: Boolean(data.draft),
@@ -244,14 +309,17 @@ export function slugify(value) {
     .slice(0, 72);
 }
 
-export function validateGuide(input) {
+export function validateGuide(input, allowedCategories = null) {
   const title = String(input.title || '').trim();
   const description = String(input.description || '').trim();
-  const category = String(input.category || '');
+  const category = String(input.category || '').trim();
   const body = String(input.body || '').trim();
   if (title.length < 3 || title.length > 140) throw new HttpError(422, 'Title must be 3–140 characters.');
   if (description.length < 8 || description.length > 260) throw new HttpError(422, 'Description must be 8–260 characters.');
-  if (!CATEGORIES.has(category)) throw new HttpError(422, 'Choose a valid category.');
+  if (!CATEGORY_KEY.test(category)) throw new HttpError(422, 'Choose a valid category.');
+  if (allowedCategories && !new Set(allowedCategories).has(category)) {
+    throw new HttpError(422, 'That category is not registered yet. Create it or choose another category.');
+  }
   if (body.length < 8 || body.length > 100000) throw new HttpError(422, 'Guide content is missing or too large.');
 
   const existingId = slugify(input.id || '');
@@ -328,6 +396,10 @@ export function normalizeStatus(entry = {}) {
 export async function writeStatusDocument(entries, sha, message) {
   const content = `${JSON.stringify(entries, null, 2)}\n`;
   return writeRepoFile(STATUS_PATH, content, message, sha);
+}
+
+export function statusFileContent(entries) {
+  return `${JSON.stringify(entries, null, 2)}\n`;
 }
 
 export function guidePath(id) {
