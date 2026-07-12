@@ -2,10 +2,14 @@
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
 import { SITE, SITE_SETTINGS, CATEGORY_ENTRIES, CATEGORIES } from '../config';
-import { getPublicGuideLinks, OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS } from '../navigation';
+import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
+interface Props {
+  guideLinks?: PublicGuideLink[];
+}
+
+const { guideLinks = [] } = Astro.props;
 const currentPath = Astro.url.pathname;
-const guideLinks = await getPublicGuideLinks();
 const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
   ? {
       ...page,
