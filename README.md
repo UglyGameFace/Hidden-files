@@ -8,12 +8,13 @@ A fast Astro + Tailwind CSS guide hub built for Vercel. Methods use Astro conten
 - Compact tablet navigation rail and full desktop sidebar on the public site
 - Full-width private Control Center application shell
 - Mobile navigation drawer with safe-area support
+- Shared page registry that exposes Home, Guide Library, published guides, and the Owner Control Center on desktop, tablet, and mobile
 - Client-side keyword search and category filters
 - Markdown guide pages with code blocks, overflow-safe tables, and generated table of contents
 - The 420 Lobby branding, SEO metadata, social preview, and persistent Discord CTAs
 - Private Lobby Control Center with live preview, local drafts, undo/redo, and guarded publishing
 - Fast live method status controls for pausing, expiring, verifying, and extending deals
-- Build-time conflict and layout regression audit
+- Build-time conflict, navigation, and layout regression audit
 
 ## Local setup
 
@@ -51,6 +52,26 @@ Methods are stored in `src/content/hacks/` with the existing Markdown content co
 - `cashback-loops`
 - `food-hacks`
 - `retail-deals`
+
+## Public and owner navigation
+
+Navigation is centralized in:
+
+```text
+src/navigation.ts
+```
+
+The public desktop/tablet sidebar and mobile drawer automatically expose:
+
+- Home
+- Guide Library / All Hacks
+- Visible categories
+- Every managed, published guide page
+- The private Owner Control Center entry point
+
+Paused and expired guide buttons are hidden through `/api/deal-status`. The Control Center keeps all eight owner sections visible across phone, tablet, laptop, and desktop layouts, and includes shortcuts back to the live site and guide library.
+
+The build audit verifies that public navigation, mobile navigation, Control Center sections, and the shared registry remain connected. New managed guides therefore receive buttons without editing the sidebar or mobile menu separately.
 
 ## Lobby Control Center
 
@@ -153,6 +174,6 @@ npm run build
 npm run preview
 ```
 
-`npm run check` and `npm run build` automatically run the site audit first. The audit rejects obsolete Deal Desk imports, duplicate modal ownership, unbalanced CSS, mismatched Control Center tabs/panels, invalid settings structure, browser-script syntax errors, and missing draft/concurrency safeguards.
+`npm run check` and `npm run build` automatically run the site audit first. The audit rejects obsolete Deal Desk imports, duplicate modal ownership, unbalanced CSS, mismatched Control Center tabs/panels, disconnected public or owner navigation, invalid settings structure, browser-script syntax errors, and missing draft/concurrency safeguards.
 
 The production site is generated in `dist/`.
