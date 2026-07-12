@@ -3,30 +3,36 @@
 ## Task
 Add a safe custom-category system that integrates with the method editor and every public website surface.
 
-## Required Behavior
-- Create a category from the Control Center without editing code.
-- Create and select a category while adding a method.
+## Status
+Completed and deployed to production.
+
+## Delivered
+- Create a category from the Control Center Categories section without editing code.
+- Create and select a category directly while adding a method.
 - Store one shared category definition: key, full label, short label, description, icon, accent, visibility, and order.
-- Use the category automatically in the method editor, homepage strip, filters, desktop navigation, mobile navigation, guide cards, guide pages, counts, search, related guides, and preview.
-- Save a new category and its first method together so the site never builds a guide that references a missing category.
+- Use custom categories automatically in the method editor, dedicated picker, homepage strip, counts, filters, search, desktop navigation, mobile navigation, guide cards, guide pages, related guides, and preview.
+- Save a new category, its first method, and its live-status registration together in one atomic GitHub commit.
+- Preserve categories created from the method editor during concurrent website-settings publishing.
 - Keep existing categories and guide content unchanged.
 
 ## Safety
-- Category keys must be safe lowercase slugs.
-- Existing built-in categories remain available and cannot disappear through malformed input.
-- Unknown manually edited categories must receive a safe fallback instead of crashing a build.
-- Category creation must not add duplicate data sources or hard-coded follow-up edits.
+- Category keys are validated safe lowercase slugs.
+- The three starter categories remain protected defaults but are no longer the only allowed categories.
+- Unknown manually edited categories receive safe fallback metadata instead of crashing the build.
+- Custom categories are limited to validated icon and accent presets.
+- Hidden categories remain available to older methods so archiving a category cannot break guide pages.
+- The build audit rejects fixed-category allowlists, unsafe keys, missing metadata, disconnected public surfaces, and non-atomic category/method saves.
 
 ## Validation
-- Repository audit.
-- Astro type check.
-- Astro production build.
-- Vercel preview deployment.
-- Production deployment.
-- Create-category and create-method workflow verification.
+- Repository audit: passed.
+- Astro type check: passed.
+- Astro production build: passed.
+- Vercel preview deployment: passed.
+- Vercel production deployment: passed.
+- Production commit: `bb0e7115de5a798fd7188958ef2e5d7c1148aa8a`.
 
 ## Blockers
 - None.
 
 ## Backlog
-- Empty. Do not move to unrelated work before this category workflow is deployed and verified.
+- Empty. Select the next task explicitly before changing unrelated behavior.
