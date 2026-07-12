@@ -16,6 +16,13 @@ const ui = {
   previewFrame: cc$('[data-preview-device-frame]'),
   publishConfirm: cc$('[data-cc-publish-confirm]'),
   toast: cc$('[data-cc-toast]'),
+  categoryStack: cc$('[data-category-stack]'),
+  categoryCreateLabel: cc$('[data-category-create-label]'),
+  categoryCreateShort: cc$('[data-category-create-short]'),
+  categoryCreateDescription: cc$('[data-category-create-description]'),
+  categoryCreateIcon: cc$('[data-category-create-icon]'),
+  categoryCreateAccent: cc$('[data-category-create-accent]'),
+  categoryCreateError: cc$('[data-category-create-error]'),
 };
 
 const state = {
@@ -45,6 +52,16 @@ const ACCENTS = {
   violet: '#a78bfa',
 };
 
+const CATEGORY_GLYPHS = {
+  loop: '↻',
+  food: '⌁',
+  tag: '◇',
+  spark: '✦',
+  book: '▤',
+  shield: '⬡',
+};
+
+const BUILTIN_CATEGORIES = new Set(['cashback-loops', 'food-hacks', 'retail-deals']);
 const clone = (value) => value == null ? value : JSON.parse(JSON.stringify(value));
 const fingerprint = (value) => JSON.stringify(value);
 
@@ -75,6 +92,35 @@ function setPath(object, path, value) {
   target[parts.at(-1)] = value;
 }
 
+function settingsRuntime() {
+  if (window.LobbySettingsRuntime) return window.LobbySettingsRuntime;
+  window.LobbySettingsRuntime = {
+    value: null,
+    promise: null,
+    async get(force = false) {
+      if (!force && this.value) return this.value;
+      if (!force && this.promise) return this.promise;
+      this.promise = request('/api/control-center-settings')
+        .then((output) => {
+          this.value = output;
+          window.dispatchEvent(new CustomEvent('lobby-settings-loaded', { detail: output }));
+          return output;
+        })
+        .finally(() => { this.promise = null; });
+      return this.promise;
+    },
+    set(output) {
+      this.value = output;
+      window.dispatchEvent(new CustomEvent('lobby-settings-loaded', { detail: output }));
+    },
+    clear() {
+      this.value = null;
+      this.promise = null;
+    },
+  };
+  return window.LobbySettingsRuntime;
+}
+
 function toast(message, type = 'ok') {
   if (!ui.toast) return;
   ui.toast.textContent = message;
@@ -97,6 +143,7 @@ function lockControlCenter() {
   closeModals();
   state.loaded = false;
   state.loading = false;
+  settingsRuntime().clear();
   const app = cc$('[data-desk-app]');
   const login = cc$('[data-login-panel]');
   if (app) app.hidden = true;
@@ -199,6 +246,94 @@ function fieldValue(field) {
   return field.value;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[character]);
+}
+
+function categorySlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+function categoryOptions(selected, type) {
+  const values = type === 'icon'
+    ? [['loop', 'Loop'], ['food', 'Food'], ['tag', 'Price tag'], ['spark', 'Spark'], ['book', 'Guide book'], ['shield', 'Shield']]
+    : [['lime', 'Lobby Lime'], ['cyan', 'Signal Cyan'], ['amber', 'Alert Amber'], ['violet', 'Discord Violet']];
+  return values.map(([value, label]) => `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
+}
+
+function renderCategoryEditors() {
+  if (!ui.categoryStack || !state.draft?.categories) return;
+  const entries = Object.entries(state.draft.categories)
+    .sort((left, right) => Number(left[1].order) - Number(right[1].order) || String(left[1].label).localeCompare(String(right[1].label)));
+
+  ui.categoryStack.innerHTML = entries.map(([key, category]) => `
+    <article class="cc-category-editor accent-${escapeHtml(category.accent || 'lime')}" data-category-editor="${escapeHtml(key)}">
+      <header>
+        <span>${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)}</span>
+        <div><strong>${escapeHtml(category.label)}</strong><small>${BUILTIN_CATEGORIES.has(key) ? 'Core category' : 'Custom category'} · Key: ${escapeHtml(key)}</small></div>
+        <button type="button" data-setting-toggle="categories.${escapeHtml(key)}.visible">${category.visible === false ? 'Hidden' : 'Visible'}</button>
+      </header>
+      <div class="cc-form-grid">
+        <label class="cc-field"><span>Full label</span><input data-setting="categories.${escapeHtml(key)}.label" maxlength="48" value="${escapeHtml(category.label)}" /></label>
+        <label class="cc-field"><span>Short label</span><input data-setting="categories.${escapeHtml(key)}.shortLabel" maxlength="20" value="${escapeHtml(category.shortLabel)}" /></label>
+        <label class="cc-field cc-wide"><span>Description</span><textarea data-setting="categories.${escapeHtml(key)}.description" rows="2" maxlength="180">${escapeHtml(category.description)}</textarea></label>
+        <label class="cc-field"><span>Icon</span><select data-setting="categories.${escapeHtml(key)}.icon">${categoryOptions(category.icon, 'icon')}</select></label>
+        <label class="cc-field"><span>Accent</span><select data-setting="categories.${escapeHtml(key)}.accent">${categoryOptions(category.accent, 'accent')}</select></label>
+        <label class="cc-field"><span>Order</span><input type="number" min="1" max="99" data-setting="categories.${escapeHtml(key)}.order" value="${Number(category.order) || 99}" /></label>
+      </div>
+      ${BUILTIN_CATEGORIES.has(key) ? '' : '<p class="cc-category-archive-note">Custom categories can be archived with the Visible/Hidden button without breaking older methods.</p>'}
+    </article>
+  `).join('');
+}
+
+function createCategoryFromPanel() {
+  if (!state.draft || state.loading) return;
+  const label = ui.categoryCreateLabel?.value.trim() || '';
+  const key = categorySlug(label);
+  const shortLabel = ui.categoryCreateShort?.value.trim() || label.slice(0, 20);
+  const description = ui.categoryCreateDescription?.value.trim() || '';
+  const showError = (message) => {
+    if (!ui.categoryCreateError) return;
+    ui.categoryCreateError.textContent = message;
+    ui.categoryCreateError.hidden = false;
+  };
+
+  if (label.length < 2) return showError('Enter a category name.');
+  if (!key) return showError('That name cannot create a safe category key.');
+  if (state.draft.categories[key]) return showError('A category with that name already exists.');
+  if (description.length < 4) return showError('Add a short description so members know what belongs here.');
+
+  const orders = Object.values(state.draft.categories).map((category) => Number(category.order) || 0);
+  pushUndo('categories', true);
+  state.draft.categories[key] = {
+    label: label.slice(0, 48),
+    shortLabel: shortLabel.slice(0, 20) || label.slice(0, 20),
+    description: description.slice(0, 180),
+    visible: true,
+    order: Math.min(99, Math.max(1, ...orders) + 1),
+    icon: ui.categoryCreateIcon?.value || 'tag',
+    accent: ui.categoryCreateAccent?.value || 'lime',
+  };
+
+  if (ui.categoryCreateLabel) ui.categoryCreateLabel.value = '';
+  if (ui.categoryCreateShort) ui.categoryCreateShort.value = '';
+  if (ui.categoryCreateDescription) ui.categoryCreateDescription.value = '';
+  if (ui.categoryCreateIcon) ui.categoryCreateIcon.value = 'tag';
+  if (ui.categoryCreateAccent) ui.categoryCreateAccent.value = 'lime';
+  if (ui.categoryCreateError) ui.categoryCreateError.hidden = true;
+
+  populateForm();
+  updateSaveState('Custom category added to this draft');
+  toast(`${state.draft.categories[key].label} added. Publish the site to make it available everywhere.`);
+}
+
 function syncControls() {
   if (!state.draft) return;
   cc$$('[data-setting-toggle]').forEach((button) => {
@@ -217,6 +352,7 @@ function syncControls() {
 
 function populateForm() {
   if (!state.draft) return;
+  renderCategoryEditors();
   cc$$('[data-setting]').forEach((field) => {
     field.value = getPath(state.draft, field.dataset.setting) ?? '';
   });
@@ -226,12 +362,6 @@ function populateForm() {
 
 function setText(selector, value) {
   cc$$(selector).forEach((element) => { element.textContent = String(value ?? ''); });
-}
-
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
-  })[character]);
 }
 
 function renderPreview() {
@@ -272,7 +402,7 @@ function renderPreview() {
     categories.innerHTML = Object.values(settings.categories)
       .filter((category) => category.visible)
       .sort((left, right) => left.order - right.order)
-      .map((category) => `<span>${escapeHtml(category.label)}</span>`)
+      .map((category) => `<span class="accent-${escapeHtml(category.accent || 'lime')}">${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)} ${escapeHtml(category.label)}</span>`)
       .join('');
   }
 
@@ -361,6 +491,7 @@ async function publish() {
     state.redo = [];
     storageRemove(KEYS.draft);
     storageRemove(KEYS.staleDraft);
+    settingsRuntime().set(output);
     populateForm();
     toast(output.message || 'Website changes published.');
     updateSaveState('Vercel deployment started');
@@ -398,7 +529,7 @@ async function loadSettings({ force = false } = {}) {
   state.loading = true;
   updateSaveState('Loading website settings');
   try {
-    const output = await request('/api/control-center-settings');
+    const output = await settingsRuntime().get(force);
     state.published = clone(output.settings);
     state.draft = recoverDraft(output.settings);
     state.sha = output.sha;
@@ -421,17 +552,33 @@ function normalizeUnlockButton() {
 }
 
 cc$$('[data-control-tab]').forEach((button) => button.addEventListener('click', () => setSection(button.dataset.controlTab)));
-cc$$('[data-setting]').forEach((field) => {
-  field.addEventListener('input', () => mutate(field.dataset.setting, fieldValue(field)));
-  field.addEventListener('change', () => { state.lastEditPath = ''; state.lastEditAt = 0; });
+
+document.addEventListener('input', (event) => {
+  const field = event.target.closest?.('[data-setting]');
+  if (!field) return;
+  mutate(field.dataset.setting, fieldValue(field));
 });
-cc$$('[data-setting-toggle]').forEach((button) => button.addEventListener('click', () => {
-  const path = button.dataset.settingToggle;
-  mutate(path, !Boolean(getPath(state.draft, path)), true);
-}));
-cc$$('[data-setting-choice]').forEach((button) => button.addEventListener('click', () => {
-  mutate(button.dataset.settingChoice, button.dataset.choiceValue, true);
-}));
+
+document.addEventListener('change', (event) => {
+  const field = event.target.closest?.('[data-setting]');
+  if (!field) return;
+  if (field instanceof HTMLSelectElement) mutate(field.dataset.setting, fieldValue(field), true);
+  state.lastEditPath = '';
+  state.lastEditAt = 0;
+});
+
+document.addEventListener('click', (event) => {
+  const toggle = event.target.closest?.('[data-setting-toggle]');
+  if (toggle) {
+    const path = toggle.dataset.settingToggle;
+    mutate(path, !Boolean(getPath(state.draft, path)), true);
+    return;
+  }
+  const choice = event.target.closest?.('[data-setting-choice]');
+  if (choice) mutate(choice.dataset.settingChoice, choice.dataset.choiceValue, true);
+});
+
+cc$('[data-category-create]')?.addEventListener('click', createCategoryFromPanel);
 cc$$('[data-cc-open-preview]').forEach((button) => button.addEventListener('click', openPreview));
 cc$$('[data-cc-close-preview]').forEach((button) => button.addEventListener('click', closePreview));
 cc$$('[data-preview-device]').forEach((button) => button.addEventListener('click', () => setPreviewDevice(button.dataset.previewDevice)));
