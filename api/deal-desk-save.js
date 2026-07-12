@@ -97,6 +97,8 @@ export default {
 
       return json({
         guide: savedGuide,
+        settings: siteSettings,
+        settingsSha: categoryCreated ? result.files[SITE_SETTINGS_PATH] : siteDocument.sha,
         categories: siteSettings.categories,
         categoryCreated,
         commit: result.commit?.sha || null,
