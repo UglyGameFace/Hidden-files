@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "audit": "node tools/audit-site.mjs",
+    "audit": "node tools/audit-site.mjs && node tools/audit-post-method.mjs",
     "check": "npm run audit && astro check",
     "build": "npm run audit && astro check && astro build",
     "preview": "astro preview"

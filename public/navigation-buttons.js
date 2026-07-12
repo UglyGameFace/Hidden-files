@@ -67,5 +67,76 @@ function addControlCenterPublicButtons() {
   }
 }
 
+function requestedOwnerIntent() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('intent') || '';
+}
+
+function showPostMethodLoginMessage() {
+  if (requestedOwnerIntent() !== 'new-method') return;
+  const loginPanel = document.querySelector('[data-login-panel]');
+  if (!loginPanel) return;
+
+  const kicker = loginPanel.querySelector('.desk-kicker');
+  const heading = loginPanel.querySelector('h2');
+  const copy = loginPanel.querySelector('p:not(.desk-inline-error)');
+  if (kicker) kicker.textContent = 'Password-protected posting';
+  if (heading) heading.textContent = 'Unlock to post a method';
+  if (copy) copy.textContent = 'Enter the same owner password used for the Control Center. The new-method form opens only after authentication succeeds.';
+}
+
+let postIntentConsumed = false;
+let postIntentObserver = null;
+
+function clearPostMethodIntent() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('intent');
+  url.hash = 'methods';
+  history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function consumePostMethodIntent() {
+  if (postIntentConsumed || requestedOwnerIntent() !== 'new-method') return false;
+
+  const root = document.querySelector('[data-control-center]');
+  const app = document.querySelector('[data-desk-app]');
+  const categoriesReady = Boolean(document.querySelector('[data-category-picker] [data-category]'));
+  const newMethodButton = document.querySelector('[data-new-method]');
+  const methodsTab = document.querySelector('[data-control-tab="methods"]');
+  const unlocked = root?.classList.contains('is-unlocked') && app && !app.hidden;
+
+  if (!unlocked || !categoriesReady || !(newMethodButton instanceof HTMLButtonElement)) return false;
+
+  if (methodsTab instanceof HTMLButtonElement) methodsTab.click();
+  newMethodButton.click();
+  postIntentConsumed = true;
+  clearPostMethodIntent();
+  postIntentObserver?.disconnect();
+  postIntentObserver = null;
+
+  window.setTimeout(() => {
+    const title = document.querySelector('[data-editor] input[name="title"]');
+    if (title instanceof HTMLInputElement) title.focus();
+  }, 80);
+  return true;
+}
+
+function connectPasswordGatedPostIntent() {
+  if (requestedOwnerIntent() !== 'new-method') return;
+  showPostMethodLoginMessage();
+  if (consumePostMethodIntent()) return;
+
+  const root = document.querySelector('[data-control-center]');
+  if (!root) return;
+  postIntentObserver = new MutationObserver(() => consumePostMethodIntent());
+  postIntentObserver.observe(root, {
+    attributes: true,
+    attributeFilter: ['class', 'hidden'],
+    childList: true,
+    subtree: true,
+  });
+}
+
 addControlCenterPublicButtons();
 connectGuideNavigation();
+connectPasswordGatedPostIntent();

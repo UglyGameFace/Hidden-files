@@ -1,38 +1,39 @@
 # Active Task
 
 ## Task
-Add a safe custom-category system that integrates with the method editor and every public website surface.
+Add an obvious public Post a Method button that remains protected by the existing Control Center owner password.
 
-## Status
-Completed and deployed to production.
+## Scope
+- Show Post a Method in the desktop/tablet sidebar.
+- Show Post a Method in the mobile navigation drawer.
+- Route through `/control-center?intent=new-method#methods`.
+- Use the existing `DEAL_DESK_PASSWORD` session gate without introducing a second password or public save path.
+- After authentication and category loading, open the New Method editor automatically.
 
-## Delivered
-- Create a category from the Control Center Categories section without editing code.
-- Create and select a category directly while adding a method.
-- Store one shared category definition: key, full label, short label, description, icon, accent, visibility, and order.
-- Use custom categories automatically in the method editor, dedicated picker, homepage strip, counts, filters, search, desktop navigation, mobile navigation, guide cards, guide pages, related guides, and preview.
-- Save a new category, its first method, and its live-status registration together in one atomic GitHub commit.
-- Preserve categories created from the method editor during concurrent website-settings publishing.
-- Keep existing categories and guide content unchanged.
+## Security Rules
+- The public button may reveal only the protected Control Center login screen.
+- The New Method editor must remain hidden until the existing session endpoint authenticates successfully.
+- Public navigation code must never receive, store, forward, or validate the owner password.
+- Public navigation code must never call the method-save API directly.
+- The deep-link intent is removed after it is consumed so refreshing does not repeatedly reset the editor.
 
-## Safety
-- Category keys are validated safe lowercase slugs.
-- The three starter categories remain protected defaults but are no longer the only allowed categories.
-- Unknown manually edited categories receive safe fallback metadata instead of crashing the build.
-- Custom categories are limited to validated icon and accent presets.
-- Hidden categories remain available to older methods so archiving a category cannot break guide pages.
-- The build audit rejects fixed-category allowlists, unsafe keys, missing metadata, disconnected public surfaces, and non-atomic category/method saves.
+## Changes
+- Added one shared `POST_METHOD_LINK` navigation entry.
+- Added distinct desktop/tablet and mobile Post a Method buttons.
+- Added intent handling that waits for both an authenticated Control Center and loaded categories.
+- Added owner-specific login wording explaining that the same password is required.
+- Added a dedicated build audit for the complete password-gated posting path.
 
 ## Validation
-- Repository audit: passed.
-- Astro type check: passed.
-- Astro production build: passed.
-- Vercel preview deployment: passed.
-- Vercel production deployment: passed.
-- Production commit: `bb0e7115de5a798fd7188958ef2e5d7c1148aa8a`.
+- Repository audit: pending preview build.
+- Password-gated posting audit: pending preview build.
+- Astro type check: pending preview build.
+- Astro production build: pending preview build.
+- Vercel preview deployment: pending.
+- Vercel production deployment: pending merge.
 
 ## Blockers
-- None.
+- None in code.
 
 ## Backlog
-- Empty. Select the next task explicitly before changing unrelated behavior.
+- Empty. Stay on this task until production deployment passes.
