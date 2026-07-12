@@ -1,25 +1,35 @@
 ---
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
-import { CATEGORY_ENTRIES, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
+import { CATEGORY_ENTRIES, CATEGORIES, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
+import { getPublicGuideLinks, OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS } from '../navigation';
 
 interface Props {
   activeCategory?: CategoryKey | 'all';
 }
+
 const { activeCategory = 'all' } = Astro.props;
+const currentPath = Astro.url.pathname;
+const guideLinks = await getPublicGuideLinks();
 ---
 
 <aside class="site-sidebar" aria-label="Primary navigation">
   <div class="sidebar-brand-wrap"><Brand /></div>
 
   <nav class="sidebar-nav">
-    <p class="sidebar-section-label">{SITE_SETTINGS.navigation.browseLabel}</p>
-    <a class:list={['sidebar-link', { active: activeCategory === 'all' }]} href="/">
-      <span class="sidebar-icon"><Icon name="home" /></span>
-      <span class="sidebar-link-copy"><strong>{SITE_SETTINGS.navigation.allHacksLabel}</strong><small>{SITE_SETTINGS.navigation.allHacksDescription}</small></span>
-      <span class="rail-label">All</span>
-    </a>
+    <p class="sidebar-section-label">Pages</p>
+    {PUBLIC_PAGE_LINKS.map((page) => (
+      <a
+        class:list={['sidebar-link', 'sidebar-page-link', { active: page.id === 'home' && currentPath === '/' }]}
+        href={page.href}
+      >
+        <span class="sidebar-icon"><Icon name={page.icon} /></span>
+        <span class="sidebar-link-copy"><strong>{page.label}</strong><small>{page.description}</small></span>
+        <span class="rail-label">{page.id === 'home' ? 'Home' : 'Guides'}</span>
+      </a>
+    ))}
 
+    <p class="sidebar-section-label">{SITE_SETTINGS.navigation.browseLabel}</p>
     {CATEGORY_ENTRIES.map(([key, category]) => (
       <a
         class:list={['sidebar-link', `accent-${category.accent}`, { active: activeCategory === key }]}
@@ -30,6 +40,32 @@ const { activeCategory = 'all' } = Astro.props;
         <span class="rail-label">{category.shortLabel}</span>
       </a>
     ))}
+
+    {guideLinks.length > 0 && (
+      <>
+        <p class="sidebar-section-label">Guide pages</p>
+        {guideLinks.map((guide) => {
+          const category = CATEGORIES[guide.category];
+          return (
+            <a
+              class:list={['sidebar-link', 'sidebar-guide-link', `accent-${category.accent}`, { active: currentPath === guide.href }]}
+              href={guide.href}
+            >
+              <span class="sidebar-icon"><Icon name={category.icon} /></span>
+              <span class="sidebar-link-copy"><strong>{guide.label}</strong><small>{guide.description}</small></span>
+              <span class="rail-label">Guide</span>
+            </a>
+          );
+        })}
+      </>
+    )}
+
+    <p class="sidebar-section-label">Owner</p>
+    <a class="sidebar-link sidebar-owner-link" href={OWNER_PAGE_LINK.href}>
+      <span class="sidebar-icon"><Icon name={OWNER_PAGE_LINK.icon} /></span>
+      <span class="sidebar-link-copy"><strong>{OWNER_PAGE_LINK.label}</strong><small>{OWNER_PAGE_LINK.description}</small></span>
+      <span class="rail-label">Owner</span>
+    </a>
   </nav>
 
   <div class="sidebar-promo">
