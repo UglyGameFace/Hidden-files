@@ -43,6 +43,10 @@ function cssOwners(cssFiles, selectors) {
   });
 }
 
+function occurrences(text, value) {
+  return text.split(value).length - 1;
+}
+
 const legacyStyles = [
   'src/styles/deal-desk-overlay.css',
   'src/styles/deal-desk-control-polish.css',
@@ -125,26 +129,42 @@ const navigationRegistry = read('src/navigation.ts');
 for (const tab of tabs) {
   if (!navigationRegistry.includes(`id: '${tab}'`)) fail(`Control Center section is missing from the shared navigation registry: ${tab}`);
 }
-for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideLinks', 'CONTROL_CENTER_SECTIONS']) {
-  if (!navigationRegistry.includes(`export const ${required}`) && !navigationRegistry.includes(`export async function ${required}`)) {
-    fail(`Shared navigation registry is missing: ${required}`);
-  }
+for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideLinks', 'CONTROL_CENTER_SECTIONS', 'PublicGuideLink']) {
+  if (!navigationRegistry.includes(required)) fail(`Shared navigation registry is missing: ${required}`);
 }
 
 const sidebar = read('src/components/Sidebar.astro');
 const mobileHeader = read('src/components/MobileHeader.astro');
 for (const [name, content] of [['Sidebar', sidebar], ['MobileHeader', mobileHeader]]) {
-  for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideLinks', 'data-guide-nav-id']) {
+  for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'data-guide-nav-id', 'guideLinks']) {
     if (!content.includes(required)) fail(`${name} is not exposing required navigation source: ${required}`);
+  }
+  if (content.includes('getPublicGuideLinks(')) {
+    fail(`${name} must receive the shared guide list instead of loading the collection again.`);
   }
 }
 
 const baseLayout = read('src/layouts/BaseLayout.astro');
-for (const required of ['navigation-buttons.css', '/site-status.js', '/navigation-buttons.js']) {
-  if (!baseLayout.includes(required)) fail(`BaseLayout is missing navigation/status asset: ${required}`);
+for (const required of [
+  'navigation-buttons.css',
+  'getPublicGuideLinks',
+  'lobby-status-bootstrap',
+  'data-build-version',
+  '/site-status.js?v=',
+  '/navigation-buttons.js?v=',
+]) {
+  if (!baseLayout.includes(required)) fail(`BaseLayout is missing public freshness behavior: ${required}`);
 }
-if (baseLayout.indexOf('/site-status.js') > baseLayout.indexOf('/navigation-buttons.js')) {
+if (occurrences(baseLayout, 'await getPublicGuideLinks()') !== 1) {
+  fail('BaseLayout must load the public guide navigation exactly once per rendered page.');
+}
+if (baseLayout.indexOf('/site-status.js?v=') > baseLayout.indexOf('/navigation-buttons.js?v=')) {
   fail('The shared status runtime must load before public navigation consumes it.');
+}
+
+const guidePage = read('src/pages/guides/[...id].astro');
+if (occurrences(guidePage, "getCollection('hacks'") !== 1) {
+  fail('Guide pages must build routes and related guides from one content-collection pass.');
 }
 
 const directStatusConsumers = [
@@ -159,8 +179,24 @@ for (const path of directStatusConsumers) {
 }
 
 const siteStatus = read('public/site-status.js');
-for (const required of ['sessionStorage', 'inflight', 'lobby-status-change', "fetch('/api/deal-status'", 'FRESH_FOR_MS']) {
+for (const required of [
+  'sessionStorage',
+  'inflight',
+  'lobby-status-change',
+  "fetch('/api/deal-status'",
+  'FRESH_FOR_MS',
+  'readBootstrap',
+  'RELOAD_KEY',
+  'MAX_PENDING_RELOADS',
+  'visibilitychange',
+]) {
   if (!siteStatus.includes(required)) fail(`Shared public status runtime is missing: ${required}`);
+}
+
+const vercel = JSON.parse(read('vercel.json'));
+const headerSources = new Set((vercel.headers || []).map((entry) => entry.source));
+for (const source of ['/_astro/(.*)', '/site-status.js', '/navigation-buttons.js', '/', '/guides/(.*)', '/control-center(.*)']) {
+  if (!headerSources.has(source)) fail(`Vercel freshness headers are missing route: ${source}`);
 }
 
 const settings = JSON.parse(read('src/data/site-settings.json'));
@@ -199,7 +235,9 @@ if (failures.length) {
 passed.push(`${cssFiles.length} stylesheets have balanced blocks.`);
 passed.push('Modal backdrops have one owning stylesheet each, with responsive overrides allowed inside that owner.');
 passed.push(`${tabs.length} editor tabs map one-to-one with panels and the shared navigation registry.`);
-passed.push('Public page, guide-page, and owner buttons are wired into desktop and mobile navigation.');
+passed.push('Public navigation loads one guide collection per page and guide routes use one collection pass.');
+passed.push('Public HTML receives build-versioned scripts, bootstrapped status, and explicit freshness headers.');
+passed.push('Open homepage tabs can detect a newly registered guide and revalidate automatically without interrupting active reading.');
 passed.push('Homepage, guide pages, and navigation share one cached live-status request.');
 passed.push('Legacy Deal Desk overrides are absent and unreferenced.');
 passed.push('JavaScript syntax, draft recovery, concurrent publishing, and dynamic viewport safeguards passed.');
