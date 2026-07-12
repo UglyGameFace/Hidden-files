@@ -2,7 +2,7 @@
 import Brand from './Brand.astro';
 import Icon from './Icon.astro';
 import { CATEGORY_ENTRIES, getCategory, SITE, SITE_SETTINGS, type CategoryKey } from '../config';
-import { OWNER_PAGE_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
+import { OWNER_PAGE_LINK, POST_METHOD_LINK, PUBLIC_PAGE_LINKS, type PublicGuideLink } from '../navigation';
 
 interface Props {
   activeCategory?: CategoryKey | 'all';
@@ -69,6 +69,11 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
     )}
 
     <p class="sidebar-section-label">Owner</p>
+    <a class="sidebar-link sidebar-post-link" href={POST_METHOD_LINK.href}>
+      <span class="sidebar-icon"><Icon name={POST_METHOD_LINK.icon} /></span>
+      <span class="sidebar-link-copy"><strong>{POST_METHOD_LINK.label}</strong><small>{POST_METHOD_LINK.description}</small></span>
+      <span class="rail-label">Post</span>
+    </a>
     <a class="sidebar-link sidebar-owner-link" href={OWNER_PAGE_LINK.href}>
       <span class="sidebar-icon"><Icon name={OWNER_PAGE_LINK.icon} /></span>
       <span class="sidebar-link-copy"><strong>{OWNER_PAGE_LINK.label}</strong><small>{OWNER_PAGE_LINK.description}</small></span>
