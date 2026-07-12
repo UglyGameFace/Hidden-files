@@ -1,27 +1,36 @@
 function effectiveGuideStatus(entry) {
+  if (window.LobbyStatus?.effectiveStatus) return window.LobbyStatus.effectiveStatus(entry);
   if (!entry) return 'active';
   if (entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now()) return 'expired';
   return entry.status || 'active';
 }
 
-async function syncGuideNavigation() {
+function applyGuideNavigation(payload = {}) {
+  const statuses = payload.statuses || {};
+  const links = [...document.querySelectorAll('[data-guide-nav-id]')];
+
+  links.forEach((link) => {
+    const id = link.getAttribute('data-guide-nav-id');
+    const status = effectiveGuideStatus(statuses[id]);
+    link.hidden = status === 'paused' || status === 'expired';
+    link.dataset.liveStatus = status;
+  });
+}
+
+async function connectGuideNavigation() {
   const links = [...document.querySelectorAll('[data-guide-nav-id]')];
   if (!links.length) return;
 
-  try {
-    const response = await fetch('/api/deal-status', { cache: 'no-store' });
-    if (!response.ok) return;
-    const payload = await response.json();
-    const statuses = payload.statuses || {};
+  if (!window.LobbyStatus) {
+    window.addEventListener('lobby-status-ready', connectGuideNavigation, { once: true });
+    return;
+  }
 
-    links.forEach((link) => {
-      const id = link.getAttribute('data-guide-nav-id');
-      const status = effectiveGuideStatus(statuses[id]);
-      link.hidden = status === 'paused' || status === 'expired';
-      link.dataset.liveStatus = status;
-    });
+  window.LobbyStatus.subscribe(applyGuideNavigation);
+  try {
+    applyGuideNavigation(await window.LobbyStatus.get());
   } catch {
-    // Static navigation remains available if the live-status endpoint is unavailable.
+    // Static navigation remains available if live status cannot be loaded.
   }
 }
 
@@ -59,5 +68,4 @@ function addControlCenterPublicButtons() {
 }
 
 addControlCenterPublicButtons();
-syncGuideNavigation();
-window.setInterval(syncGuideNavigation, 60000);
+connectGuideNavigation();
