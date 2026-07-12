@@ -50,7 +50,11 @@ const guideLinks = await getPublicGuideLinks();
         {guideLinks.map((guide) => {
           const category = CATEGORIES[guide.category];
           return (
-            <a class:list={['mobile-guide-link', { active: currentPath === guide.href }]} href={guide.href}>
+            <a
+              class:list={['mobile-guide-link', { active: currentPath === guide.href }]}
+              href={guide.href}
+              data-guide-nav-id={guide.id}
+            >
               <Icon name={category.icon} />
               <span><strong>{guide.label}</strong><small>{guide.description}</small></span>
             </a>
