@@ -125,48 +125,60 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-US', { month: 'sh
     return `Ends in ${Math.ceil(hours / 24)}d`;
   }
 
-  async function applyLiveStatus() {
+  function renderLiveStatus(payload = {}) {
     if (!(page instanceof HTMLElement)) return;
-    try {
-      const response = await fetch('/api/deal-status', { cache: 'no-store' });
-      if (!response.ok) return;
-      const payload = await response.json();
-      const entry = payload.statuses?.[page.dataset.guideId];
-      if (!entry) return;
-      const status = entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now() ? 'expired' : entry.status;
+    const entry = payload.statuses?.[page.dataset.guideId];
+    if (!entry) return;
+    const status = window.LobbyStatus?.effectiveStatus
+      ? window.LobbyStatus.effectiveStatus(entry)
+      : entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now() ? 'expired' : entry.status;
 
-      if (status === 'expired' || status === 'paused') {
-        if (alert instanceof HTMLElement) {
-          alert.hidden = false;
-          alert.dataset.status = status;
-        }
-        if (alertTitle) alertTitle.textContent = status === 'expired' ? 'This method has expired' : 'This method is temporarily paused';
-        if (alertCopy) alertCopy.textContent = status === 'expired'
-          ? 'The Deal Desk marked this method inactive, so the instructions are hidden until it is reactivated.'
-          : 'The method is under review or temporarily unavailable. Check back later or browse current methods.';
-        if (content instanceof HTMLElement) content.hidden = true;
-        if (related instanceof HTMLElement) related.hidden = true;
-        if (liveStatus instanceof HTMLElement) { liveStatus.hidden = false; liveStatus.textContent = status; liveStatus.dataset.status = status; }
-        return;
+    if (status === 'expired' || status === 'paused') {
+      if (alert instanceof HTMLElement) {
+        alert.hidden = false;
+        alert.dataset.status = status;
       }
-
-      if (alert instanceof HTMLElement) alert.hidden = true;
-      if (content instanceof HTMLElement) content.hidden = false;
-      if (related instanceof HTMLElement) related.hidden = false;
+      if (alertTitle) alertTitle.textContent = status === 'expired' ? 'This method has expired' : 'This method is temporarily paused';
+      if (alertCopy) alertCopy.textContent = status === 'expired'
+        ? 'The Deal Desk marked this method inactive, so the instructions are hidden until it is reactivated.'
+        : 'The method is under review or temporarily unavailable. Check back later or browse current methods.';
+      if (content instanceof HTMLElement) content.hidden = true;
+      if (related instanceof HTMLElement) related.hidden = true;
       if (liveStatus instanceof HTMLElement) {
         liveStatus.hidden = false;
-        liveStatus.textContent = entry.expiresAt ? remainingLabel(entry.expiresAt) : 'Active';
-        liveStatus.dataset.status = entry.expiresAt ? 'expiring' : 'active';
+        liveStatus.textContent = status;
+        liveStatus.dataset.status = status;
       }
+      return;
+    }
+
+    if (alert instanceof HTMLElement) alert.hidden = true;
+    if (content instanceof HTMLElement) content.hidden = false;
+    if (related instanceof HTMLElement) related.hidden = false;
+    if (liveStatus instanceof HTMLElement) {
+      liveStatus.hidden = false;
+      liveStatus.textContent = entry.expiresAt ? remainingLabel(entry.expiresAt) : 'Active';
+      liveStatus.dataset.status = entry.expiresAt ? 'expiring' : 'active';
+    }
+  }
+
+  async function connectLiveStatus() {
+    if (!window.LobbyStatus) {
+      window.addEventListener('lobby-status-ready', connectLiveStatus, { once: true });
+      return;
+    }
+
+    window.LobbyStatus.subscribe(renderLiveStatus);
+    try {
+      renderLiveStatus(await window.LobbyStatus.get());
     } catch {
       // The static guide remains readable if live status cannot be loaded.
     }
   }
 
   updateProgress();
-  applyLiveStatus();
+  connectLiveStatus();
   document.addEventListener('scroll', updateProgress, { passive: true });
-  window.setInterval(applyLiveStatus, 60000);
 </script>
 
 <style>
