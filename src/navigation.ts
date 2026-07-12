@@ -18,6 +18,14 @@ export const PUBLIC_PAGE_LINKS = [
   },
 ] as const;
 
+export const POST_METHOD_LINK = {
+  id: 'post-method',
+  label: 'Post a Method',
+  description: 'Password-protected owner form',
+  href: '/control-center?intent=new-method#methods',
+  icon: 'spark',
+} as const;
+
 export const OWNER_PAGE_LINK = {
   id: 'control-center',
   label: 'Owner Control Center',
