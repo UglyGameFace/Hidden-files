@@ -140,8 +140,27 @@ for (const [name, content] of [['Sidebar', sidebar], ['MobileHeader', mobileHead
 }
 
 const baseLayout = read('src/layouts/BaseLayout.astro');
-for (const required of ['navigation-buttons.css', '/navigation-buttons.js']) {
-  if (!baseLayout.includes(required)) fail(`BaseLayout is missing navigation asset: ${required}`);
+for (const required of ['navigation-buttons.css', '/site-status.js', '/navigation-buttons.js']) {
+  if (!baseLayout.includes(required)) fail(`BaseLayout is missing navigation/status asset: ${required}`);
+}
+if (baseLayout.indexOf('/site-status.js') > baseLayout.indexOf('/navigation-buttons.js')) {
+  fail('The shared status runtime must load before public navigation consumes it.');
+}
+
+const directStatusConsumers = [
+  'src/pages/index.astro',
+  'src/pages/guides/[...id].astro',
+  'public/navigation-buttons.js',
+];
+for (const path of directStatusConsumers) {
+  if (read(path).includes("fetch('/api/deal-status'")) {
+    fail(`${path} bypasses the shared public status cache.`);
+  }
+}
+
+const siteStatus = read('public/site-status.js');
+for (const required of ['sessionStorage', 'inflight', 'lobby-status-change', "fetch('/api/deal-status'", 'FRESH_FOR_MS']) {
+  if (!siteStatus.includes(required)) fail(`Shared public status runtime is missing: ${required}`);
 }
 
 const settings = JSON.parse(read('src/data/site-settings.json'));
@@ -155,7 +174,7 @@ if (JSON.stringify(categoryKeys) !== JSON.stringify(['cashback-loops', 'food-hac
 if (!['lime', 'cyan', 'amber', 'violet'].includes(settings.theme?.accentPreset)) fail('Unsupported accent preset.');
 if (!['compact', 'comfortable', 'spacious'].includes(settings.theme?.density)) fail('Unsupported density preset.');
 
-for (const path of ['public/deal-desk.js', 'public/control-center.js', 'public/navigation-buttons.js']) {
+for (const path of ['public/deal-desk.js', 'public/control-center.js', 'public/site-status.js', 'public/navigation-buttons.js']) {
   const result = spawnSync(process.execPath, ['--check', path], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) fail(`${path} failed syntax validation:\n${result.stderr.trim()}`);
 }
@@ -181,6 +200,7 @@ passed.push(`${cssFiles.length} stylesheets have balanced blocks.`);
 passed.push('Modal backdrops have one owning stylesheet each, with responsive overrides allowed inside that owner.');
 passed.push(`${tabs.length} editor tabs map one-to-one with panels and the shared navigation registry.`);
 passed.push('Public page, guide-page, and owner buttons are wired into desktop and mobile navigation.');
+passed.push('Homepage, guide pages, and navigation share one cached live-status request.');
 passed.push('Legacy Deal Desk overrides are absent and unreferenced.');
 passed.push('JavaScript syntax, draft recovery, concurrent publishing, and dynamic viewport safeguards passed.');
 console.log('\nSITE AUDIT PASSED\n');
