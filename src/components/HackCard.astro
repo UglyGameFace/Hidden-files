@@ -1,14 +1,14 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import Icon from './Icon.astro';
-import { CATEGORIES } from '../config';
+import { getCategory } from '../config';
 
 interface Props {
   hack: CollectionEntry<'hacks'>;
 }
 const { hack } = Astro.props;
-const category = CATEGORIES[hack.data.category];
-const searchable = [hack.data.title, hack.data.description, category.label, ...hack.data.keywords]
+const category = getCategory(hack.data.category);
+const searchable = [hack.data.title, hack.data.description, category.label, category.shortLabel, ...hack.data.keywords]
   .join(' ')
   .toLowerCase();
 ---
