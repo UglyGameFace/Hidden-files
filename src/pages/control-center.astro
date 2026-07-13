@@ -23,6 +23,16 @@ import '../styles/control-center.css';
   }
 </style>
 
+<script is:inline>
+  if (!window.CSS) window.CSS = {};
+  if (typeof window.CSS.escape !== 'function') {
+    window.CSS.escape = function (value) {
+      return String(value).replace(/[^a-zA-Z0-9_-]/g, function (character) {
+        return '\\' + character;
+      });
+    };
+  }
+</script>
 <script>
   import '../scripts/deal-desk.js';
   import '../scripts/control-center.js';
