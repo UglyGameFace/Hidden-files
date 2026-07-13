@@ -3,6 +3,9 @@
 ## Task
 Restore the eight Control Center section buttons so Methods, Homepage, Branding, Navigation, Categories, Community, Footer & SEO, and Appearance all open reliably on Samsung Internet and other browsers.
 
+## Status
+Completed and deployed to production.
+
 ## Root Cause
 - The Control Center HTML was configured as no-store, but `/deal-desk.js` and `/control-center.js` used stable unversioned URLs.
 - Samsung Internet could display the newest HTML and section cards while retaining an older browser script, leaving the visible buttons disconnected from the current page.
@@ -16,20 +19,21 @@ Restore the eight Control Center section buttons so Methods, Homepage, Branding,
 - Add a dedicated build audit for script versioning, revalidation, compatibility, section listeners, panel visibility, and duplicate-code prevention.
 
 ## Validation
-- Repository audit: pending preview build.
-- Password-gated posting audit: pending preview build.
-- Control Center section audit: pending preview build.
-- Astro type check: pending preview build.
-- Astro production build: pending preview build.
-- Vercel preview deployment: pending.
-- Vercel production deployment: pending merge.
+- Repository audit: passed.
+- Password-gated posting audit: passed.
+- Control Center section audit: passed.
+- Astro type check: passed.
+- Astro production build: passed.
+- Vercel preview deployment: passed.
+- Vercel production deployment: passed.
+- Production commit: `c20c31c766b4ac66724eb76abd9ff88ca986a7ab`.
 
 ## Cleanup
 - A temporary duplicate section-switch file was removed before review.
 - No guide content, category data, authentication behavior, or owner password was changed.
 
 ## Blockers
-- None in code.
+- None.
 
 ## Backlog
-- Empty. Stay on this task until production deployment and live section switching pass.
+- Empty. Select the next task explicitly before changing unrelated behavior.
