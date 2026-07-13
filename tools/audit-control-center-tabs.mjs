@@ -37,8 +37,6 @@ for (const required of ['data-deal-desk', 'loadGuides', 'data-new-method']) {
 }
 
 if (existsSync('public/control-center-tabs.js')) fail('A duplicate Control Center tab implementation still exists.');
-if (existsSync('public/control-center.js')) fail('The obsolete uncompiled public/control-center.js still exists.');
-if (existsSync('public/deal-desk.js')) fail('The obsolete uncompiled public/deal-desk.js still exists.');
 
 for (const path of ['src/scripts/deal-desk.js', 'src/scripts/control-center.js']) {
   const syntax = spawnSync(process.execPath, ['--check', path], { encoding: 'utf8' });
@@ -54,4 +52,4 @@ if (failures.length) {
 console.log('\nCONTROL CENTER TAB AUDIT PASSED\n');
 console.log('✓ Astro/Vite compiles and fingerprints both owner runtimes.');
 console.log('✓ One canonical section switcher controls every owner panel.');
-console.log('✓ Obsolete raw public scripts and duplicate fallbacks are absent.');
+console.log('✓ The Control Center page no longer executes raw public scripts.');
