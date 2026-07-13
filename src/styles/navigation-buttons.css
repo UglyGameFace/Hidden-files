@@ -1,4 +1,4 @@
-/* Public-page buttons and fully visible owner-section navigation. */
+/* Public-page buttons and owner shortcuts. Layout geometry lives in layout-system.css. */
 
 .sidebar-nav {
   gap: .28rem;
@@ -127,72 +127,4 @@
 .desk-login-public-link {
   width: 100%;
   margin-top: .75rem;
-}
-
-/* Higher specificity keeps all owner buttons visible regardless of bundle order. */
-@media (max-width: 1350px) {
-  .lobby-control-center .cc-section-picker {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    overflow: visible;
-    margin-right: 0;
-    margin-left: 0;
-    padding: 0;
-  }
-
-  .lobby-control-center .cc-section-picker button {
-    width: auto;
-    min-width: 0;
-    flex: initial;
-  }
-}
-
-@media (max-width: 900px) {
-  .lobby-control-center .cc-section-picker {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .lobby-control-center .cc-section-picker {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .45rem;
-    margin: 0 0 .7rem;
-    padding: 0;
-  }
-
-  .lobby-control-center .cc-section-picker button {
-    min-width: 0;
-    min-height: 4.35rem;
-  }
-
-  .lobby-control-center .cc-section-picker button strong,
-  .lobby-control-center .cc-section-picker button small {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .cc-command-actions > a {
-    display: grid;
-    min-height: 3.35rem;
-    justify-items: center;
-    gap: .28rem;
-    padding: .42rem .22rem;
-  }
-
-  .cc-command-actions > a span {
-    font-size: .8rem;
-  }
-
-  .cc-command-actions > a b {
-    max-width: 100%;
-    font-size: .48rem;
-  }
-}
-
-@media (max-width: 390px) {
-  .lobby-control-center .cc-section-picker {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
