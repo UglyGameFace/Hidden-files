@@ -4,12 +4,6 @@ import LobbyControlCenter from '../components/LobbyControlCenter.astro';
 import '../styles/deal-desk.css';
 import '../styles/method-manager.css';
 import '../styles/control-center.css';
-
-const buildVersion = String(
-  import.meta.env.VERCEL_GIT_COMMIT_SHA
-  || import.meta.env.GITHUB_SHA
-  || Date.now(),
-).slice(0, 12);
 ---
 
 <BaseLayout
@@ -29,11 +23,7 @@ const buildVersion = String(
   }
 </style>
 
-<script is:inline>
-  globalThis.CSS ||= {};
-  if (typeof globalThis.CSS.escape !== 'function') {
-    globalThis.CSS.escape = (value) => String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
-  }
+<script>
+  import '../scripts/deal-desk.js';
+  import '../scripts/control-center.js';
 </script>
-<script src={`/deal-desk.js?v=${buildVersion}`} defer></script>
-<script src={`/control-center.js?v=${buildVersion}`} defer></script>
