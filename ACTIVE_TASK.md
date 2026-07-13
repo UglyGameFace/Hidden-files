@@ -1,39 +1,35 @@
 # Active Task
 
 ## Task
-Add an obvious public Post a Method button that remains protected by the existing Control Center owner password.
+Restore the eight Control Center section buttons so Methods, Homepage, Branding, Navigation, Categories, Community, Footer & SEO, and Appearance all open reliably on Samsung Internet and other browsers.
 
-## Scope
-- Show Post a Method in the desktop/tablet sidebar.
-- Show Post a Method in the mobile navigation drawer.
-- Route through `/control-center?intent=new-method#methods`.
-- Use the existing `DEAL_DESK_PASSWORD` session gate without introducing a second password or public save path.
-- After authentication and category loading, open the New Method editor automatically.
+## Root Cause
+- The Control Center HTML was configured as no-store, but `/deal-desk.js` and `/control-center.js` used stable unversioned URLs.
+- Samsung Internet could display the newest HTML and section cards while retaining an older browser script, leaving the visible buttons disconnected from the current page.
+- The canonical section switcher also uses `CSS.escape`; a browser missing that API would throw before switching panels.
 
-## Security Rules
-- The public button may reveal only the protected Control Center login screen.
-- The New Method editor must remain hidden until the existing session endpoint authenticates successfully.
-- Public navigation code must never receive, store, forward, or validate the owner password.
-- Public navigation code must never call the method-save API directly.
-- The deep-link intent is removed after it is consumed so refreshing does not repeatedly reset the editor.
-
-## Changes
-- Added one shared `POST_METHOD_LINK` navigation entry.
-- Added distinct desktop/tablet and mobile Post a Method buttons.
-- Added intent handling that waits for both an authenticated Control Center and loaded categories.
-- Added owner-specific login wording explaining that the same password is required.
-- Added a dedicated build audit for the complete password-gated posting path.
+## Fix
+- Version both Control Center scripts with the current deployment identifier.
+- Add explicit Vercel revalidation headers for both scripts.
+- Add a small `CSS.escape` compatibility guard before the canonical Control Center script executes.
+- Keep one section-switch implementation in `public/control-center.js`; no duplicate fallback or monkey patch remains.
+- Add a dedicated build audit for script versioning, revalidation, compatibility, section listeners, panel visibility, and duplicate-code prevention.
 
 ## Validation
 - Repository audit: pending preview build.
 - Password-gated posting audit: pending preview build.
+- Control Center section audit: pending preview build.
 - Astro type check: pending preview build.
 - Astro production build: pending preview build.
 - Vercel preview deployment: pending.
 - Vercel production deployment: pending merge.
 
+## Cleanup
+- A temporary duplicate section-switch file was removed before review.
+- No guide content, category data, authentication behavior, or owner password was changed.
+
 ## Blockers
 - None in code.
 
 ## Backlog
-- Empty. Stay on this task until production deployment passes.
+- Empty. Stay on this task until production deployment and live section switching pass.
