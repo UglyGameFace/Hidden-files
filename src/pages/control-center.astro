@@ -29,6 +29,11 @@ const buildVersion = String(
   }
 </style>
 
+<script is:inline>
+  globalThis.CSS ||= {};
+  if (typeof globalThis.CSS.escape !== 'function') {
+    globalThis.CSS.escape = (value) => String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  }
+</script>
 <script src={`/deal-desk.js?v=${buildVersion}`} defer></script>
 <script src={`/control-center.js?v=${buildVersion}`} defer></script>
-<script src={`/control-center-tabs.js?v=${buildVersion}`} defer></script>
