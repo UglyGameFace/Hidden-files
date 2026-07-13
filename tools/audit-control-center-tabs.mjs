@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 const read = (path) => readFileSync(path, 'utf8');
@@ -6,40 +6,48 @@ const failures = [];
 const fail = (message) => failures.push(message);
 
 const page = read('src/pages/control-center.astro');
-const tabs = read('public/control-center-tabs.js');
+const control = read('public/control-center.js');
 const vercel = JSON.parse(read('vercel.json'));
 
 for (const required of [
   '/deal-desk.js?v=${buildVersion}',
   '/control-center.js?v=${buildVersion}',
-  '/control-center-tabs.js?v=${buildVersion}',
 ]) {
   if (!page.includes(required)) fail(`Control Center page is missing versioned script: ${required}`);
 }
 
 for (const required of [
-  "document.addEventListener('click'",
-  "closest?.(TAB_SELECTOR)",
-  "panel.hidden = !selected",
-  "button.classList.toggle('active', selected)",
-  "button.setAttribute('aria-selected'",
-  "history.replaceState",
-  "window.LobbyControlSections",
+  "globalThis.CSS.escape",
+  "String(value).replace(/[^a-zA-Z0-9_-]/g",
 ]) {
-  if (!tabs.includes(required)) fail(`Resilient section switching is missing: ${required}`);
+  if (!page.includes(required)) fail(`Control Center browser compatibility guard is missing: ${required}`);
 }
 
-if (tabs.includes('CSS.escape')) {
-  fail('Fallback section switching must not depend on CSS.escape browser support.');
+for (const required of [
+  'function setSection(section)',
+  "cc$$('[data-control-tab]').forEach",
+  "button.addEventListener('click'",
+  "panel.hidden = panel.dataset.controlPanel !== resolved",
+  "button.classList.toggle('active', selected)",
+  "button.setAttribute('aria-pressed'",
+  'history.replaceState',
+]) {
+  if (!control.includes(required)) fail(`Canonical section switching is missing: ${required}`);
+}
+
+if (existsSync('public/control-center-tabs.js')) {
+  fail('A duplicate Control Center tab implementation still exists.');
 }
 
 const headerSources = new Set((vercel.headers || []).map((entry) => entry.source));
-for (const source of ['/deal-desk.js', '/control-center.js', '/control-center-tabs.js']) {
+for (const source of ['/deal-desk.js', '/control-center.js']) {
   if (!headerSources.has(source)) fail(`Vercel revalidation header is missing: ${source}`);
 }
 
-const syntax = spawnSync(process.execPath, ['--check', 'public/control-center-tabs.js'], { encoding: 'utf8' });
-if (syntax.status !== 0) fail(`control-center-tabs.js failed syntax validation:\n${syntax.stderr.trim()}`);
+for (const path of ['public/deal-desk.js', 'public/control-center.js']) {
+  const syntax = spawnSync(process.execPath, ['--check', path], { encoding: 'utf8' });
+  if (syntax.status !== 0) fail(`${path} failed syntax validation:\n${syntax.stderr.trim()}`);
+}
 
 if (failures.length) {
   console.error('\nCONTROL CENTER TAB AUDIT FAILED\n');
@@ -48,6 +56,6 @@ if (failures.length) {
 }
 
 console.log('\nCONTROL CENTER TAB AUDIT PASSED\n');
-console.log('✓ Section clicks use delegated browser-safe switching.');
-console.log('✓ All Control Center scripts are deployment-versioned and revalidated.');
-console.log('✓ Panel visibility, active state, accessibility state, and URL hash stay synchronized.');
+console.log('✓ One canonical section-switch implementation controls every owner panel.');
+console.log('✓ Samsung Browser receives deployment-versioned Control Center scripts.');
+console.log('✓ Missing CSS.escape support cannot disable section buttons.');
