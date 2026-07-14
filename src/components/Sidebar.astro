@@ -42,7 +42,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
         class:list={['sidebar-link', `accent-${category.accent}`, { active: activeCategory === key }]}
         href={`/?category=${key}#library`}
       >
-        <span class="sidebar-icon"><Icon name={category.icon} /></span>
+        <span class="sidebar-icon"><Icon name={category.icon} customIcon={category.customIcon} /></span>
         <span class="sidebar-link-copy"><strong>{category.label}</strong><small>{category.description}</small></span>
         <span class="rail-label">{category.shortLabel}</span>
       </a>
@@ -59,7 +59,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
               href={guide.href}
               data-guide-nav-id={guide.id}
             >
-              <span class="sidebar-icon"><Icon name={category.icon} /></span>
+              <span class="sidebar-icon"><Icon name={category.icon} customIcon={category.customIcon} /></span>
               <span class="sidebar-link-copy"><strong>{guide.label}</strong><small>{guide.description}</small></span>
               <span class="rail-label">Guide</span>
             </a>
