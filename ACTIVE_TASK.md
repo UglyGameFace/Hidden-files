@@ -4,7 +4,7 @@
 Expand the category icon system so the Categories panel and New Method creator offer a useful site-matched icon library plus safe custom SVG upload, while every public surface keeps icons flush and consistently sized.
 
 ## Status
-Implementation is complete on `agent/expand-category-icons`. Repository, Astro, preview, and production validation are pending.
+Implemented, merged, and deployed to production. Live owner interaction review remains open.
 
 ## Scope
 - Replace the six-option category icon list with one shared outline icon registry suited to deals, food, gaming, cashback, delivery, retail, and web methods.
@@ -26,22 +26,26 @@ Implementation is complete on `agent/expand-category-icons`. Repository, Astro, 
 - Added regression audits for registry size, persistence, unsafe SVG rejection, upload hooks, shared rendering, and fixed dimensions.
 
 ## Validation
-- JavaScript syntax: pending preview execution.
-- Existing repository audits: pending preview execution.
-- Category persistence audit: pending preview execution.
-- Category icon audit: pending preview execution.
-- Astro check: pending preview execution.
-- Production build: pending preview execution.
-- Vercel preview: pending.
-- Vercel production: pending merge.
+- JavaScript syntax: passed.
+- Existing repository audits: passed.
+- Category persistence audit: passed.
+- Category icon audit: passed.
+- Astro check: passed.
+- Production build: passed.
+- Vercel preview: passed.
+- Pull request: `#22` merged.
+- Production implementation commit: `38fa00c2ae9515cbe45ea8d68fb7f8aaf42a1855`.
+- Vercel production deployment: passed.
+- Live owner interaction review: awaiting owner confirmation.
 
 ## Cleanup
 - No Unicode fallback registry remains in the active owner runtimes.
 - No second category registry, raw SVG storage, external icon service, or local-only upload state was added.
 - Existing category values remain valid and unchanged.
+- Temporary task marker was removed before merge.
 
 ## Blockers
-- None known in code. Deployment validation remains.
+- None in code or deployment.
 
 ## Backlog
-- Empty. Do not move to another task until preview, merge, production deployment, and live owner icon verification pass.
+- Empty. Stay on this task until the owner confirms the live icon picker and custom upload interaction.
