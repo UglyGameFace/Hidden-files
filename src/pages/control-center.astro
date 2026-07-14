@@ -36,4 +36,22 @@ import '../styles/control-center.css';
 <script>
   import '../scripts/deal-desk.js';
   import '../scripts/control-center.js';
+
+  let publishedCategoryFingerprint = '';
+  window.addEventListener('lobby-settings-loaded', (event) => {
+    const categories = (event as CustomEvent).detail?.settings?.categories;
+    if (!categories || typeof categories !== 'object') return;
+
+    const nextFingerprint = JSON.stringify(categories);
+    const registryChanged = Boolean(
+      publishedCategoryFingerprint
+      && publishedCategoryFingerprint !== nextFingerprint,
+    );
+    publishedCategoryFingerprint = nextFingerprint;
+
+    if (!registryChanged) return;
+    queueMicrotask(() => {
+      document.querySelector<HTMLButtonElement>('[data-refresh]')?.click();
+    });
+  });
 </script>
