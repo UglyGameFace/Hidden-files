@@ -50,7 +50,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
     <p class="mobile-nav-label">{SITE_SETTINGS.navigation.browseLabel}</p>
     {CATEGORY_ENTRIES.map(([key, category]) => (
       <a href={`/?category=${key}#library`}>
-        <Icon name={category.icon} />
+        <Icon name={category.icon} customIcon={category.customIcon} />
         <span><strong>{category.label}</strong><small>{category.description}</small></span>
       </a>
     ))}
@@ -66,7 +66,7 @@ const pageLinks = PUBLIC_PAGE_LINKS.map((page) => page.id === 'library'
               href={guide.href}
               data-guide-nav-id={guide.id}
             >
-              <Icon name={category.icon} />
+              <Icon name={category.icon} customIcon={category.customIcon} />
               <span><strong>{guide.label}</strong><small>{guide.description}</small></span>
             </a>
           );
