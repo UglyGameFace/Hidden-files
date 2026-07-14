@@ -2,6 +2,7 @@ export const METHOD_ORDER_STEP = 10;
 export const METHOD_ORDER_MAX = 9999;
 
 function normalizedOrder(value) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   return Math.max(0, Math.min(METHOD_ORDER_MAX, Math.trunc(parsed)));
