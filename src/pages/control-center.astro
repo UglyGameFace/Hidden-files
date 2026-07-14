@@ -39,7 +39,7 @@ import '../styles/control-center.css';
 
   let publishedCategoryFingerprint = '';
   window.addEventListener('lobby-settings-loaded', (event) => {
-    const categories = event.detail?.settings?.categories;
+    const categories = (event as CustomEvent).detail?.settings?.categories;
     if (!categories || typeof categories !== 'object') return;
 
     const nextFingerprint = JSON.stringify(categories);
@@ -51,7 +51,7 @@ import '../styles/control-center.css';
 
     if (!registryChanged) return;
     queueMicrotask(() => {
-      document.querySelector('[data-refresh]')?.click();
+      document.querySelector<HTMLButtonElement>('[data-refresh]')?.click();
     });
   });
 </script>
