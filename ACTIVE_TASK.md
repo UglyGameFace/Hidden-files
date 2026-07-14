@@ -4,7 +4,7 @@
 Make every category, method, and site-settings publish propagate through the entire owner application and every public surface without requiring manual refreshes or repeated back-and-forth.
 
 ## Status
-Implementation is complete on `agent/site-wide-update-propagation`. Preview and production validation are pending.
+Implemented, merged through PR #23, and deployed to production.
 
 ## Scope
 - Keep `src/data/site-settings.json` as the canonical persisted category registry.
@@ -19,7 +19,7 @@ Implementation is complete on `agent/site-wide-update-propagation`. Preview and 
 - Publishing Categories refreshed New Method, but saving a category through New Method did not update the Categories panel state or its settings SHA.
 - Categories created in one owner panel were not available as shared drafts in the other panel before publishing.
 - Public freshness logic only detected newly registered guide IDs. A category-only publish, navigation change, homepage change, icon change, or other settings deployment left already-open public pages on old static HTML.
-- The production registry currently contains only the three starter categories, confirming the category shown locally in New Method had not reached the canonical persisted registry.
+- The production registry contained only the three starter categories, confirming the category shown locally in New Method had not reached the canonical persisted registry.
 
 ## Changes
 - Added native bidirectional category draft events owned by the two editor runtimes.
@@ -31,15 +31,16 @@ Implementation is complete on `agent/site-wide-update-propagation`. Preview and 
 - Added a site-wide propagation regression audit and updated category persistence coverage.
 
 ## Validation
-- JavaScript syntax: pending Vercel preview.
-- Existing repository audits: pending Vercel preview.
-- Category persistence audit: pending Vercel preview.
-- Category icon audit: pending Vercel preview.
-- Site-wide propagation audit: pending Vercel preview.
-- Astro check: pending Vercel preview.
-- Production build: pending Vercel preview.
-- Vercel preview: pending.
-- Vercel production: pending merge.
+- JavaScript syntax: passed.
+- Existing repository audits: passed.
+- Category persistence audit: passed.
+- Category icon audit: passed.
+- Site-wide propagation audit: passed.
+- Astro check: passed.
+- Production build: passed.
+- Vercel preview for PR #23: passed.
+- PR #23 merged with production implementation commit `93d603398566ac6d541509a51efa28cd3d450789`.
+- Vercel production deployment for the merged implementation: passed.
 
 ## Cleanup
 - The old page-shell refresh bridge was removed.
@@ -47,7 +48,7 @@ Implementation is complete on `agent/site-wide-update-propagation`. Preview and 
 - Owner pages are excluded from automatic deployment reloads so unsaved forms are never interrupted.
 
 ## Blockers
-- None known in code. Deployment validation remains.
+- None in code or deployment.
 
 ## Backlog
-- Empty. Do not move to another task until preview, merge, production deployment, and live category propagation verification pass.
+- Empty. Live owner interaction confirmation remains, but implementation and deployment gates are complete.
