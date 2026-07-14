@@ -4,7 +4,7 @@
 Fix custom-category persistence from the password-gated Categories panel through publishing, reload, New Method, method saving, and every public category surface.
 
 ## Status
-Implementation complete on `agent/fix-custom-category-persistence`. Preview and production validation are pending.
+Completed, merged through PR #21, and deployed to production.
 
 ## Scope
 - Preserve one canonical category registry in `src/data/site-settings.json`.
@@ -12,7 +12,7 @@ Implementation complete on `agent/fix-custom-category-persistence`. Preview and 
 - Make a published custom category immediately available to New Method without requiring a manual browser refresh.
 - Validate sanitizer round trips, method validation, Astro content validation, atomic saves, and public registry consumers.
 
-## Findings
+## Root Cause
 - The server sanitizer already preserved valid unknown category keys and all supported metadata.
 - The settings POST endpoint already wrote the complete sanitized registry to `src/data/site-settings.json`.
 - The settings GET endpoint already returned the persisted registry.
@@ -20,31 +20,34 @@ Implementation complete on `agent/fix-custom-category-persistence`. Preview and 
 - Publishing from the Categories panel updated `window.LobbySettingsRuntime`, but the method editor did not consume the resulting `lobby-settings-loaded` event.
 - New Method therefore continued rendering the stale boot-time category copy even after a successful category publish.
 
-## Changes
-- Added a page-level synchronization bridge that detects a changed published category registry and invokes the existing canonical method/settings reload path.
+## Fix
+- Added a page-level synchronization bridge that detects a changed published category registry and invokes the existing authenticated method/settings reload path.
 - Kept the API-backed settings registry as the only source of truth; no fallback category list or second registry was added.
 - Added `tools/audit-category-persistence.mjs` with the `gaming-deals` regression case.
+- Added a non-public Astro content fixture using `gaming-deals` so Astro check and production build validate the non-default category path.
 - Added the category persistence audit to every repository audit/check/build.
 
 ## Validation
-- Custom sanitizer preservation: implemented; pending Vercel execution.
-- Serialize/save/reload round trip: implemented; pending Vercel execution.
-- New Method picker synchronization: implemented; pending Vercel execution.
-- Method validation and atomic category/method/status save: covered; pending Vercel execution.
-- Temporary Astro guide using `gaming-deals`: covered; pending Vercel execution.
-- Existing repository audits: pending Vercel preview.
-- Astro check: pending Vercel preview.
-- Production build: pending Vercel preview.
-- Vercel preview: pending.
-- Vercel production: pending merge.
+- Custom sanitizer preservation: passed.
+- Serialize/save/reload round trip: passed.
+- New Method picker synchronization audit: passed.
+- Method validation and atomic category/method/status save audit: passed.
+- Astro guide using `gaming-deals`: passed Astro validation and production build.
+- Existing repository audits: passed.
+- Astro check: passed.
+- Production build: passed.
+- Vercel preview deployment: passed on PR #21.
+- PR #21 merged with production commit `0fef5d757b884f52b425c96344631613a5c4d2ab`.
+- Vercel production deployment for the merged commit: passed.
 
 ## Cleanup
 - No submitted method title, description, body, or existing category data changed.
 - No authentication, password, layout, or unrelated feature changed.
 - No monkey patch, duplicate registry, fallback array, or local-only persistence path added.
+- The regression guide remains non-managed and draft-only, so it cannot appear on public routes or in owner-managed methods.
 
 ## Blockers
-- None in code. Deployment checks remain.
+- None.
 
 ## Backlog
-- Empty. Do not move to another task until preview, merge, production deployment, and live category workflow verification pass.
+- Empty. A new task must be explicitly selected before changing unrelated behavior.
