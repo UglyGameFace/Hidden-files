@@ -4,6 +4,7 @@
   const BUILD_RELOAD_KEY = 'lobby-pending-build-reloads-v1';
   const FRESH_FOR_MS = 15_000;
   const REFRESH_EVERY_MS = 20_000;
+  const REQUEST_TIMEOUT_MS = 12_000;
   const PENDING_RELOAD_DELAY_MS = 20_000;
   const BUILD_RELOAD_DELAY_MS = 5_000;
   const MAX_PENDING_RELOADS = 6;
@@ -188,18 +189,30 @@
   }
 
   async function fetchFresh() {
-    const response = await fetch('/api/deal-status', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-      cache: 'no-cache',
-    });
-    if (!response.ok) throw new Error(`Live status request failed (${response.status}).`);
-    const payload = await response.json();
-    return publish({
-      statuses: payload.statuses || {},
-      checkedAt: payload.checkedAt || new Date().toISOString(),
-      buildVersion: payload.buildVersion || currentBuildVersion(),
-    }, 'network');
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch('/api/deal-status', {
+        credentials: 'same-origin',
+        headers: { accept: 'application/json' },
+        cache: 'no-cache',
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`Live status request failed (${response.status}).`);
+      const payload = await response.json();
+      return publish({
+        statuses: payload.statuses || {},
+        checkedAt: payload.checkedAt || new Date().toISOString(),
+        buildVersion: payload.buildVersion || currentBuildVersion(),
+      }, 'network');
+    } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError') {
+        throw new Error('Live status request timed out.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   async function refresh() {

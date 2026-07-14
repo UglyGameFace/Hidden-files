@@ -1,10 +1,13 @@
 import {
+  clearLoginFailures,
   clearSessionCookie,
   createSessionCookie,
+  getLoginThrottle,
   handleError,
   isAuthenticated,
   json,
   methodNotAllowed,
+  registerLoginFailure,
   requireSameOrigin,
   verifyPassword,
 } from '../server/deal-desk.js';
@@ -18,11 +21,30 @@ export default {
 
       if (request.method === 'POST') {
         requireSameOrigin(request);
+        const throttle = getLoginThrottle(request);
+        if (throttle.blocked) {
+          return json(
+            { error: 'Too many failed unlock attempts. Wait before trying again.' },
+            429,
+            { 'retry-after': String(throttle.retryAfter) },
+          );
+        }
+
         const body = await request.json().catch(() => ({}));
         if (!verifyPassword(body.password)) {
-          await new Promise((resolve) => setTimeout(resolve, 450));
-          return json({ error: 'Incorrect Deal Desk password.' }, 401);
+          const failure = registerLoginFailure(request);
+          await new Promise((resolve) => setTimeout(resolve, 650));
+          if (failure.blocked) {
+            return json(
+              { error: 'Too many failed unlock attempts. Wait before trying again.' },
+              429,
+              { 'retry-after': String(failure.retryAfter) },
+            );
+          }
+          return json({ error: 'Incorrect Control Center password.' }, 401);
         }
+
+        clearLoginFailures(request);
         return json(
           { authenticated: true },
           200,

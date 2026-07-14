@@ -31,7 +31,7 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
       </label>
       <button type="submit">Unlock Control Center</button>
     </form>
-    <p class="desk-inline-error" data-login-error hidden></p>
+    <p class="desk-inline-error" data-login-error role="alert" aria-live="assertive" hidden></p>
   </section>
 
   <section class="desk-app cc-app" data-desk-app hidden>
@@ -41,9 +41,17 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
         <h2 data-cc-section-title>Methods</h2>
         <p data-cc-section-description>Manage active, expiring, paused, and expired guides.</p>
       </div>
-      <div class="cc-publish-state">
+      <div class="cc-publish-state" aria-live="polite" aria-atomic="true">
         <span class="cc-state-dot"></span>
         <div><strong data-cc-save-state>Published</strong><small data-cc-save-detail>No unpublished site changes</small></div>
+      </div>
+      <div class="cc-deployment-state" data-cc-deployment-state data-state="pending" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <span class="cc-deployment-dot" aria-hidden="true"></span>
+        <div>
+          <strong data-cc-deployment-label>Publishing to production</strong>
+          <small data-cc-deployment-detail>Waiting for Vercel.</small>
+          <a data-cc-deployment-link target="_blank" rel="noreferrer" hidden>View deployment ↗</a>
+        </div>
       </div>
       <div class="cc-command-actions">
         <button type="button" data-cc-undo disabled><span>↶</span><b>Undo</b></button>
@@ -158,10 +166,10 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
                         <div class="cc-custom-icon-preview" data-method-category-custom-preview aria-label="Custom icon preview"></div>
                       </div>
                       <small>Any valid viewBox is centered and scaled into the fixed site icon slot. Simple outline SVGs without transforms work best.</small>
-                      <p data-method-category-custom-status hidden></p>
+                      <p data-method-category-custom-status role="status" aria-live="polite" hidden></p>
                     </div>
                   </div>
-                  <p data-method-category-error hidden></p>
+                  <p data-method-category-error role="alert" hidden></p>
                   <div><button type="button" data-cancel-method-category>Cancel</button><button type="button" data-create-method-category>Create and select</button></div>
                 </div>
               </fieldset>
@@ -182,9 +190,10 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
     <SiteSettingsPanels />
   </section>
 
-  <div class="desk-modal-backdrop" data-picker-backdrop hidden>
-    <section class="desk-picker" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+  <div class="desk-modal-backdrop" data-picker-backdrop aria-hidden="true" hidden>
+    <section class="desk-picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" aria-describedby="picker-description">
       <header><div><span class="desk-kicker">Dedicated method picker</span><h2 id="picker-title">Choose a method</h2></div><button type="button" class="desk-icon-button" data-close-picker aria-label="Close picker">×</button></header>
+      <p id="picker-description" class="sr-only">Search, filter, and choose a method to edit.</p>
       <div class="desk-picker-layout">
         <aside>
           <label class="desk-picker-search"><span>⌕</span><input type="search" placeholder="Search title, app, code..." data-picker-search /></label>
@@ -197,24 +206,24 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
           </nav>
           <button type="button" class="desk-picker-new" data-new-method>+ Create new method</button>
         </aside>
-        <div class="desk-picker-results"><div class="desk-picker-result-head"><strong data-picker-result-count>0 methods</strong><span>Tap one to edit</span></div><div class="desk-method-list" data-method-list></div><div class="desk-picker-empty" data-picker-empty hidden><strong>No matching method</strong><p>Try a broader keyword or another status.</p></div></div>
+        <div class="desk-picker-results"><div class="desk-picker-result-head"><strong data-picker-result-count aria-live="polite">0 methods</strong><span>Tap one to edit</span></div><div class="desk-method-list" data-method-list></div><div class="desk-picker-empty" data-picker-empty hidden><strong>No matching method</strong><p>Try a broader keyword or another status.</p></div></div>
       </div>
       <footer><button type="button" data-close-picker>Cancel</button></footer>
     </section>
   </div>
 
-  <div class="desk-modal-backdrop" data-confirm-backdrop hidden>
-    <section class="desk-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
-      <span class="desk-confirm-mark">!</span><h2 id="confirm-title" data-confirm-title>Confirm action</h2><p data-confirm-copy></p><div><button type="button" data-confirm-back>Back</button><button type="button" class="danger" data-confirm-go>Confirm</button></div>
+  <div class="desk-modal-backdrop" data-confirm-backdrop aria-hidden="true" hidden>
+    <section class="desk-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description">
+      <span class="desk-confirm-mark">!</span><h2 id="confirm-title" data-confirm-title>Confirm action</h2><p id="confirm-description" data-confirm-copy></p><div><button type="button" data-confirm-back>Back</button><button type="button" class="danger" data-confirm-go>Confirm</button></div>
     </section>
   </div>
 
-  <div class="cc-confirm-backdrop" data-cc-publish-confirm hidden>
-    <section class="cc-publish-confirm" role="alertdialog" aria-modal="true" aria-labelledby="cc-publish-title">
-      <span>↑</span><h2 id="cc-publish-title">Publish website changes?</h2><p>This saves the draft to GitHub and starts a Vercel rebuild. Your current public site stays online while the new version deploys.</p><div><button type="button" data-cc-cancel-publish>Keep editing</button><button type="button" data-cc-confirm-publish>Publish site</button></div>
+  <div class="cc-confirm-backdrop" data-cc-publish-confirm aria-hidden="true" hidden>
+    <section class="cc-publish-confirm" role="alertdialog" aria-modal="true" aria-labelledby="cc-publish-title" aria-describedby="cc-publish-description">
+      <span>↑</span><h2 id="cc-publish-title">Publish website changes?</h2><p id="cc-publish-description">This saves the draft to GitHub and starts a Vercel rebuild. Your current public site stays online while the new version deploys.</p><div><button type="button" data-cc-cancel-publish>Keep editing</button><button type="button" data-cc-confirm-publish>Publish site</button></div>
     </section>
   </div>
 
-  <div class="desk-toast" data-desk-toast hidden></div>
-  <div class="cc-toast" data-cc-toast hidden></div>
+  <div class="desk-toast" data-desk-toast role="status" aria-live="polite" aria-atomic="true" hidden></div>
+  <div class="cc-toast" data-cc-toast role="status" aria-live="polite" aria-atomic="true" hidden></div>
 </section>
