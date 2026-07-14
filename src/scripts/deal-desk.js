@@ -54,6 +54,7 @@ const elements = {
 
 const state = {
   guides: [],
+  publishedCategories: {},
   categories: {},
   pendingCategories: {},
   pendingMethodCustomIcon: null,
@@ -254,6 +255,38 @@ function renderCategoryPicker() {
   selectCategory(state.category || defaultCategoryKey());
 }
 
+function consumePublishedSettings(event) {
+  const categories = event.detail?.settings?.categories;
+  if (!categories || typeof categories !== 'object') return;
+  state.publishedCategories = structuredClone(categories);
+  state.categories = {
+    ...structuredClone(state.publishedCategories),
+    ...structuredClone(state.pendingCategories),
+  };
+  if (!state.category || !state.categories[state.category]) state.category = defaultCategoryKey();
+  renderCategoryPicker();
+  renderPicker();
+}
+
+function consumeSettingsCategoryDraft(event) {
+  if (event.detail?.source !== 'settings-editor') return;
+  const categories = event.detail?.categories;
+  if (!categories || typeof categories !== 'object') return;
+
+  const localPending = structuredClone(state.pendingCategories);
+  for (const [key, definition] of Object.entries(categories)) {
+    if (!state.publishedCategories[key]) localPending[key] = structuredClone(definition);
+  }
+  state.pendingCategories = localPending;
+  state.categories = {
+    ...structuredClone(categories),
+    ...structuredClone(localPending),
+  };
+  if (!state.category || !state.categories[state.category]) state.category = defaultCategoryKey();
+  renderCategoryPicker();
+  renderPicker();
+}
+
 function setMethodCustomStatus(message, type = 'ok') {
   if (!elements.categoryCustomStatus) return;
   elements.categoryCustomStatus.textContent = message;
@@ -359,9 +392,16 @@ function createPendingCategory() {
   state.pendingCategories[key] = definition;
   state.category = key;
   renderCategoryPicker();
+  window.dispatchEvent(new CustomEvent('lobby-category-draft-change', {
+    detail: {
+      source: 'method-editor',
+      key,
+      definition: structuredClone(definition),
+    },
+  }));
   clearCategoryCreator();
   showCategoryCreator(false);
-  notify(`${definition.label} created locally. Save the method to publish both together.`);
+  notify(`${definition.label} added to the shared site draft. Save the method to publish both together.`);
 }
 
 function filterCounts() {
@@ -640,8 +680,11 @@ async function loadGuides() {
     settingsRuntime().get(),
   ]);
   state.guides = guideOutput.guides || [];
-  state.categories = structuredClone(settingsOutput.settings?.categories || {});
-  state.pendingCategories = {};
+  state.publishedCategories = structuredClone(settingsOutput.settings?.categories || {});
+  state.categories = {
+    ...structuredClone(state.publishedCategories),
+    ...structuredClone(state.pendingCategories),
+  };
   state.pendingMethodCustomIcon = null;
   if (!state.category || !state.categories[state.category]) state.category = defaultCategoryKey();
   renderCategoryPicker();
@@ -709,6 +752,9 @@ elements.categoryIcon?.addEventListener('change', () => {
   syncMethodCustomControls();
 });
 elements.categoryCustomInput?.addEventListener('change', loadMethodCustomIcon);
+
+window.addEventListener('lobby-settings-loaded', consumePublishedSettings);
+window.addEventListener('lobby-category-draft-change', consumeSettingsCategoryDraft);
 
 elements.featureToggle?.addEventListener('click', () => {
   state.featured = !state.featured;
@@ -820,16 +866,20 @@ elements.editor?.addEventListener('submit', async (event) => {
       }),
     });
     state.selectedId = output.guide.id;
+    state.publishedCategories = structuredClone(output.categories || state.publishedCategories);
     state.categories = structuredClone(output.categories || state.categories);
     state.pendingCategories = {};
     state.pendingMethodCustomIcon = null;
-    const runtimeValue = settingsRuntime().value;
-    if (runtimeValue?.settings) {
-      settingsRuntime().set({
-        ...runtimeValue,
-        settings: { ...runtimeValue.settings, categories: structuredClone(state.categories) },
-      });
-    }
+    const runtimeValue = settingsRuntime().value || {};
+    settingsRuntime().set({
+      ...runtimeValue,
+      settings: structuredClone(output.settings || {
+        ...(runtimeValue.settings || {}),
+        categories: state.categories,
+      }),
+      sha: output.settingsSha || runtimeValue.sha || null,
+      commit: output.commit || runtimeValue.commit || null,
+    });
     renderCategoryPicker();
     notify(output.message);
     await loadGuides();
