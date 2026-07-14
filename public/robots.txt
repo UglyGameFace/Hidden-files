@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /control-center/
+Disallow: /deal-desk/
+Disallow: /post-method/
+Disallow: /api/
+
+Sitemap: https://the-420-lobby-hacks.vercel.app/sitemap.xml
