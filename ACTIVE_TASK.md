@@ -1,53 +1,47 @@
 # Active Task
 
 ## Task
-Fix custom-category persistence from the password-gated Categories panel through publishing, reload, New Method, method saving, and every public category surface.
+Expand the category icon system so the Categories panel and New Method creator offer a useful site-matched icon library plus safe custom SVG upload, while every public surface keeps icons flush and consistently sized.
 
 ## Status
-Completed, merged through PR #21, and deployed to production.
+Implementation is complete on `agent/expand-category-icons`. Repository, Astro, preview, and production validation are pending.
 
 ## Scope
-- Preserve one canonical category registry in `src/data/site-settings.json`.
-- Preserve all existing methods, category metadata, visibility behavior, authentication, and public layout.
-- Make a published custom category immediately available to New Method without requiring a manual browser refresh.
-- Validate sanitizer round trips, method validation, Astro content validation, atomic saves, and public registry consumers.
+- Replace the six-option category icon list with one shared outline icon registry suited to deals, food, gaming, cashback, delivery, retail, and web methods.
+- Offer the same choices in Categories and the inline New Method category creator.
+- Allow a custom path-based SVG icon without storing arbitrary executable SVG markup.
+- Center and scale preset and custom icons into the same fixed square slot on owner previews, the homepage, cards, desktop navigation, mobile navigation, and guide pages.
+- Preserve all existing categories, methods, authentication, layout, accents, visibility, and publishing behavior.
 
 ## Root Cause
-- The server sanitizer already preserved valid unknown category keys and all supported metadata.
-- The settings POST endpoint already wrote the complete sanitized registry to `src/data/site-settings.json`.
-- The settings GET endpoint already returned the persisted registry.
-- The method editor copied categories into its private `state.categories` only during its initial `loadGuides()` call.
-- Publishing from the Categories panel updated `window.LobbySettingsRuntime`, but the method editor did not consume the resulting `lobby-settings-loaded` event.
-- New Method therefore continued rendering the stale boot-time category copy even after a successful category publish.
+- Category creation exposed only six hard-coded choices.
+- The owner interface represented them with rough Unicode glyphs, while the public site used separate SVG path definitions.
+- Icon choices therefore looked inconsistent and there was no supported custom icon format or upload path.
 
-## Fix
-- Added a page-level synchronization bridge that detects a changed published category registry and invokes the existing authenticated method/settings reload path.
-- Kept the API-backed settings registry as the only source of truth; no fallback category list or second registry was added.
-- Added `tools/audit-category-persistence.mjs` with the `gaming-deals` regression case.
-- Added a non-public Astro content fixture using `gaming-deals` so Astro check and production build validate the non-default category path.
-- Added the category persistence audit to every repository audit/check/build.
+## Changes
+- Added one shared registry with more than twenty site-matched outline icons.
+- Made both owner category creators consume that registry instead of separate option lists.
+- Added sanitized custom SVG upload that stores only a validated viewBox and path data.
+- Added fixed-size, proportion-preserving SVG rendering across every category surface.
+- Added regression audits for registry size, persistence, unsafe SVG rejection, upload hooks, shared rendering, and fixed dimensions.
 
 ## Validation
-- Custom sanitizer preservation: passed.
-- Serialize/save/reload round trip: passed.
-- New Method picker synchronization audit: passed.
-- Method validation and atomic category/method/status save audit: passed.
-- Astro guide using `gaming-deals`: passed Astro validation and production build.
-- Existing repository audits: passed.
-- Astro check: passed.
-- Production build: passed.
-- Vercel preview deployment: passed on PR #21.
-- PR #21 merged with production commit `0fef5d757b884f52b425c96344631613a5c4d2ab`.
-- Vercel production deployment for the merged commit: passed.
+- JavaScript syntax: pending preview execution.
+- Existing repository audits: pending preview execution.
+- Category persistence audit: pending preview execution.
+- Category icon audit: pending preview execution.
+- Astro check: pending preview execution.
+- Production build: pending preview execution.
+- Vercel preview: pending.
+- Vercel production: pending merge.
 
 ## Cleanup
-- No submitted method title, description, body, or existing category data changed.
-- No authentication, password, layout, or unrelated feature changed.
-- No monkey patch, duplicate registry, fallback array, or local-only persistence path added.
-- The regression guide remains non-managed and draft-only, so it cannot appear on public routes or in owner-managed methods.
+- No Unicode fallback registry remains in the active owner runtimes.
+- No second category registry, raw SVG storage, external icon service, or local-only upload state was added.
+- Existing category values remain valid and unchanged.
 
 ## Blockers
-- None.
+- None known in code. Deployment validation remains.
 
 ## Backlog
-- Empty. A new task must be explicitly selected before changing unrelated behavior.
+- Empty. Do not move to another task until preview, merge, production deployment, and live owner icon verification pass.

@@ -1,7 +1,18 @@
 import siteSettings from './data/site-settings.json';
+import {
+  CATEGORY_ICON_DEFINITIONS,
+  CATEGORY_ICON_KEYS,
+  DEFAULT_CATEGORY_ICON,
+  sanitizeCustomIconDefinition,
+} from './lib/category-icons.js';
 
-export type CategoryIcon = 'loop' | 'food' | 'tag' | 'spark' | 'book' | 'shield';
+export type CategoryIcon = keyof typeof CATEGORY_ICON_DEFINITIONS | 'custom';
 export type CategoryAccent = 'lime' | 'cyan' | 'amber' | 'violet';
+
+export interface CustomCategoryIcon {
+  viewBox: string;
+  paths: string[];
+}
 
 export interface CategoryDefinition {
   label: string;
@@ -11,9 +22,10 @@ export interface CategoryDefinition {
   order: number;
   icon: CategoryIcon;
   accent: CategoryAccent;
+  customIcon?: CustomCategoryIcon;
 }
 
-const CATEGORY_ICONS = new Set<CategoryIcon>(['loop', 'food', 'tag', 'spark', 'book', 'shield']);
+const CATEGORY_ICONS = new Set<string>([...CATEGORY_ICON_KEYS, 'custom']);
 const CATEGORY_ACCENTS = new Set<CategoryAccent>(['lime', 'cyan', 'amber', 'violet']);
 const FALLBACK_CATEGORY: CategoryDefinition = {
   label: 'Other Methods',
@@ -21,7 +33,7 @@ const FALLBACK_CATEGORY: CategoryDefinition = {
   description: 'Additional community methods and opportunities.',
   visible: true,
   order: 99,
-  icon: 'tag',
+  icon: DEFAULT_CATEGORY_ICON as CategoryIcon,
   accent: 'lime',
 };
 
@@ -45,18 +57,31 @@ export const SITE = {
 } as const;
 
 export const CATEGORIES: Record<string, CategoryDefinition> = Object.fromEntries(
-  Object.entries(SITE_SETTINGS.categories).map(([key, category]) => [
-    key,
-    {
-      label: String(category.label || key),
-      shortLabel: String(category.shortLabel || category.label || key).slice(0, 20),
-      description: String(category.description || FALLBACK_CATEGORY.description),
-      visible: category.visible !== false,
-      order: Number.isFinite(Number(category.order)) ? Number(category.order) : 99,
-      icon: CATEGORY_ICONS.has(category.icon) ? category.icon : FALLBACK_CATEGORY.icon,
-      accent: CATEGORY_ACCENTS.has(category.accent) ? category.accent : FALLBACK_CATEGORY.accent,
-    },
-  ]),
+  Object.entries(SITE_SETTINGS.categories).map(([key, category]) => {
+    const requestedIcon = CATEGORY_ICONS.has(category.icon)
+      ? category.icon as CategoryIcon
+      : FALLBACK_CATEGORY.icon;
+    const customIcon = requestedIcon === 'custom'
+      ? sanitizeCustomIconDefinition(category.customIcon) as CustomCategoryIcon | null
+      : null;
+    const icon = requestedIcon === 'custom' && !customIcon
+      ? FALLBACK_CATEGORY.icon
+      : requestedIcon;
+
+    return [
+      key,
+      {
+        label: String(category.label || key),
+        shortLabel: String(category.shortLabel || category.label || key).slice(0, 20),
+        description: String(category.description || FALLBACK_CATEGORY.description),
+        visible: category.visible !== false,
+        order: Number.isFinite(Number(category.order)) ? Number(category.order) : 99,
+        icon,
+        accent: CATEGORY_ACCENTS.has(category.accent) ? category.accent : FALLBACK_CATEGORY.accent,
+        ...(customIcon ? { customIcon } : {}),
+      },
+    ];
+  }),
 );
 
 export type CategoryKey = string;

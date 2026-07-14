@@ -22,7 +22,7 @@ const searchable = [hack.data.title, hack.data.description, category.label, cate
   data-search={searchable}
 >
   <div class="hack-card-topline">
-    <span class="category-chip"><Icon name={category.icon} /> {category.label}</span>
+    <span class="category-chip"><Icon name={category.icon} customIcon={category.customIcon} /> {category.label}</span>
     <span
       class="status-chip"
       data-live-status-label

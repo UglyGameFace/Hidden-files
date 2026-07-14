@@ -63,7 +63,7 @@ const trustIcons = ['shield', 'spark', 'clock'] as const;
     <section class="category-strip" aria-label="Guide categories">
       {CATEGORY_ENTRIES.map(([key, category]) => (
         <a href={`/?category=${key}#library`} class={`category-summary accent-${category.accent}`}>
-          <span class="category-summary-icon"><Icon name={category.icon} /></span>
+          <span class="category-summary-icon"><Icon name={category.icon} customIcon={category.customIcon} /></span>
           <span><strong>{category.label}</strong><small>{categoryCounts[key]} guides available</small></span>
           <Icon name="chevron" class="category-chevron" />
         </a>

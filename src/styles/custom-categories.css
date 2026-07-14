@@ -67,12 +67,12 @@
   display: grid;
   width: 2.35rem;
   height: 2.35rem;
+  flex: 0 0 2.35rem;
   place-items: center;
   border: 1px solid rgb(var(--accent-rgb) / .2);
   border-radius: .55rem;
   background: rgb(var(--accent-rgb) / .07);
   color: var(--lime);
-  font: 900 .95rem/1 var(--mono);
 }
 
 .lobby-control-center .cc-category-editor.accent-cyan > header > span {
@@ -91,6 +91,46 @@
   border-color: rgba(167, 139, 250, .24);
   background: rgba(167, 139, 250, .07);
   color: #a78bfa;
+}
+
+.lobby-control-center .cc-category-icon-svg,
+.lobby-control-center .desk-category-icon-svg,
+.lobby-control-center .cc-preview-category-icon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 1.15rem;
+  overflow: visible;
+}
+
+.lobby-control-center .cc-category-editor > header .cc-category-icon-svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.lobby-control-center .desk-category-picker button > span {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 1.55rem;
+  place-items: center;
+}
+
+.lobby-control-center .desk-category-picker .desk-category-icon-svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.lobby-control-center .cc-preview-categories > span {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.lobby-control-center .cc-preview-category-icon {
+  width: .75rem;
+  height: .75rem;
+  flex-basis: .75rem;
 }
 
 .lobby-control-center .cc-category-archive-note {
@@ -177,6 +217,110 @@
   background: rgba(167, 139, 250, .1);
 }
 
+.lobby-control-center .cc-custom-icon-upload,
+.lobby-control-center .desk-custom-icon-upload {
+  display: grid;
+  gap: .55rem;
+  border: 1px dashed rgb(var(--accent-rgb) / .26);
+  border-radius: .65rem;
+  background: rgb(var(--accent-rgb) / .035);
+  padding: .8rem;
+}
+
+.lobby-control-center .cc-custom-icon-upload[hidden],
+.lobby-control-center .desk-custom-icon-upload[hidden] {
+  display: none;
+}
+
+.lobby-control-center .cc-custom-icon-upload > span,
+.lobby-control-center .desk-custom-icon-upload > span {
+  color: var(--text);
+  font: 800 .6rem/1 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.lobby-control-center .cc-custom-icon-upload > small,
+.lobby-control-center .desk-custom-icon-upload > small {
+  color: var(--muted-2);
+  font: 650 .58rem/1.5 var(--mono);
+}
+
+.lobby-control-center .cc-custom-icon-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.25rem;
+  align-items: stretch;
+  gap: .65rem;
+}
+
+.lobby-control-center .cc-custom-icon-file {
+  display: grid;
+  min-width: 0;
+  min-height: 3.25rem;
+  align-content: center;
+  gap: .25rem;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  background: var(--panel-2);
+  padding: .65rem .75rem;
+  cursor: pointer;
+}
+
+.lobby-control-center .cc-custom-icon-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lobby-control-center .cc-custom-icon-file strong {
+  color: var(--lime);
+  font: 800 .63rem/1 var(--mono);
+  text-transform: uppercase;
+}
+
+.lobby-control-center .cc-custom-icon-file small {
+  overflow: hidden;
+  color: var(--muted);
+  font: 650 .58rem/1.25 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-control-center .cc-custom-icon-preview {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border: 1px solid rgb(var(--accent-rgb) / .28);
+  border-radius: .65rem;
+  background: rgb(var(--accent-rgb) / .08);
+  color: var(--lime);
+}
+
+.lobby-control-center .cc-custom-icon-preview .cc-category-icon-svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.lobby-control-center [data-category-create-custom-status],
+.lobby-control-center [data-category-custom-status],
+.lobby-control-center [data-method-category-custom-status] {
+  margin: 0;
+  color: var(--muted);
+  font: 700 .58rem/1.45 var(--mono);
+}
+
+.lobby-control-center [data-type="ok"] {
+  color: var(--lime);
+}
+
+.lobby-control-center [data-type="error"] {
+  color: #ff8983;
+}
+
 @media (max-width: 760px) {
   .lobby-control-center .cc-category-create-actions,
   .lobby-control-center .desk-method-category-creator > div:last-child {
@@ -187,5 +331,14 @@
   .lobby-control-center .cc-category-create-actions button,
   .lobby-control-center .desk-method-category-creator > div:last-child button {
     width: 100%;
+  }
+
+  .lobby-control-center .cc-custom-icon-row {
+    grid-template-columns: minmax(0, 1fr) 3rem;
+  }
+
+  .lobby-control-center .cc-custom-icon-preview {
+    width: 3rem;
+    height: 3rem;
   }
 }

@@ -1,3 +1,9 @@
+import {
+  CATEGORY_ICON_OPTIONS,
+  categoryIconSvgMarkup,
+  parseCustomIconSvg,
+} from '../lib/category-icons.js';
+
 const cc$ = (selector, root = document) => root.querySelector(selector);
 const cc$$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -23,6 +29,10 @@ const ui = {
   categoryCreateIcon: cc$('[data-category-create-icon]'),
   categoryCreateAccent: cc$('[data-category-create-accent]'),
   categoryCreateError: cc$('[data-category-create-error]'),
+  categoryCreateCustomWrap: cc$('[data-category-create-custom-wrap]'),
+  categoryCreateCustomInput: cc$('[data-category-create-custom-icon]'),
+  categoryCreateCustomPreview: cc$('[data-category-create-custom-preview]'),
+  categoryCreateCustomStatus: cc$('[data-category-create-custom-status]'),
 };
 
 const state = {
@@ -37,6 +47,7 @@ const state = {
   activeSection: 'methods',
   lastEditPath: '',
   lastEditAt: 0,
+  newCategoryCustomIcon: null,
 };
 
 const KEYS = {
@@ -50,15 +61,6 @@ const ACCENTS = {
   cyan: '#55dff4',
   amber: '#ffbd4a',
   violet: '#a78bfa',
-};
-
-const CATEGORY_GLYPHS = {
-  loop: '↻',
-  food: '⌁',
-  tag: '◇',
-  spark: '✦',
-  book: '▤',
-  shield: '⬡',
 };
 
 const BUILTIN_CATEGORIES = new Set(['cashback-loops', 'food-hacks', 'retail-deals']);
@@ -263,9 +265,25 @@ function categorySlug(value) {
 
 function categoryOptions(selected, type) {
   const values = type === 'icon'
-    ? [['loop', 'Loop'], ['food', 'Food'], ['tag', 'Price tag'], ['spark', 'Spark'], ['book', 'Guide book'], ['shield', 'Shield']]
+    ? [...CATEGORY_ICON_OPTIONS.map(({ value, label }) => [value, label]), ['custom', 'Custom SVG upload']]
     : [['lime', 'Lobby Lime'], ['cyan', 'Signal Cyan'], ['amber', 'Alert Amber'], ['violet', 'Discord Violet']];
   return values.map(([value, label]) => `<option value="${value}"${selected === value ? ' selected' : ''}>${label}</option>`).join('');
+}
+
+function customIconUploadMarkup(key, category) {
+  const custom = category.icon === 'custom';
+  const status = category.customIcon ? 'Custom SVG ready and fitted to the site icon slot.' : 'Choose a path-based SVG to finish this icon.';
+  return `
+    <div class="cc-field cc-wide cc-custom-icon-upload" data-category-custom-wrap="${escapeHtml(key)}"${custom ? '' : ' hidden'}>
+      <span>Custom SVG</span>
+      <div class="cc-custom-icon-row">
+        <label class="cc-custom-icon-file"><input type="file" accept=".svg,image/svg+xml" data-category-custom-icon="${escapeHtml(key)}" /><strong>Choose SVG</strong><small>Path-based outline file</small></label>
+        <div class="cc-custom-icon-preview" data-category-custom-preview="${escapeHtml(key)}">${categoryIconSvgMarkup(category.icon, category.customIcon, 'cc-category-icon-svg')}</div>
+      </div>
+      <small>Any valid viewBox is centered and scaled into the fixed 24 × 24 site slot.</small>
+      <p data-category-custom-status="${escapeHtml(key)}">${escapeHtml(status)}</p>
+    </div>
+  `;
 }
 
 function renderCategoryEditors() {
@@ -276,7 +294,7 @@ function renderCategoryEditors() {
   ui.categoryStack.innerHTML = entries.map(([key, category]) => `
     <article class="cc-category-editor accent-${escapeHtml(category.accent || 'lime')}" data-category-editor="${escapeHtml(key)}">
       <header>
-        <span>${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)}</span>
+        <span>${categoryIconSvgMarkup(category.icon, category.customIcon, 'cc-category-icon-svg')}</span>
         <div><strong>${escapeHtml(category.label)}</strong><small>${BUILTIN_CATEGORIES.has(key) ? 'Core category' : 'Custom category'} · Key: ${escapeHtml(key)}</small></div>
         <button type="button" data-setting-toggle="categories.${escapeHtml(key)}.visible">${category.visible === false ? 'Hidden' : 'Visible'}</button>
       </header>
@@ -287,10 +305,78 @@ function renderCategoryEditors() {
         <label class="cc-field"><span>Icon</span><select data-setting="categories.${escapeHtml(key)}.icon">${categoryOptions(category.icon, 'icon')}</select></label>
         <label class="cc-field"><span>Accent</span><select data-setting="categories.${escapeHtml(key)}.accent">${categoryOptions(category.accent, 'accent')}</select></label>
         <label class="cc-field"><span>Order</span><input type="number" min="1" max="99" data-setting="categories.${escapeHtml(key)}.order" value="${Number(category.order) || 99}" /></label>
+        ${customIconUploadMarkup(key, category)}
       </div>
       ${BUILTIN_CATEGORIES.has(key) ? '' : '<p class="cc-category-archive-note">Custom categories can be archived with the Visible/Hidden button without breaking older methods.</p>'}
     </article>
   `).join('');
+}
+
+function setStatus(element, message, type = 'ok') {
+  if (!element) return;
+  element.textContent = message;
+  element.dataset.type = type;
+  element.hidden = false;
+}
+
+function syncNewCategoryCustomControls() {
+  const isCustom = ui.categoryCreateIcon?.value === 'custom';
+  if (ui.categoryCreateCustomWrap) ui.categoryCreateCustomWrap.hidden = !isCustom;
+  if (ui.categoryCreateCustomPreview) {
+    ui.categoryCreateCustomPreview.innerHTML = categoryIconSvgMarkup(
+      isCustom ? 'custom' : ui.categoryCreateIcon?.value || 'tag',
+      state.newCategoryCustomIcon,
+      'cc-category-icon-svg',
+    );
+  }
+  if (ui.categoryCreateCustomStatus) {
+    ui.categoryCreateCustomStatus.hidden = !isCustom;
+    if (isCustom) {
+      setStatus(
+        ui.categoryCreateCustomStatus,
+        state.newCategoryCustomIcon
+          ? 'Custom SVG ready and fitted to the site icon slot.'
+          : 'Choose a path-based outline SVG.',
+        state.newCategoryCustomIcon ? 'ok' : 'muted',
+      );
+    }
+  }
+}
+
+async function readCustomIconFile(input) {
+  const file = input?.files?.[0];
+  if (!file) throw new Error('Choose an SVG file.');
+  if (file.size > 64 * 1024) throw new Error('Keep the SVG under 64 KB.');
+  return parseCustomIconSvg(await file.text());
+}
+
+async function loadNewCategoryCustomIcon(input) {
+  try {
+    state.newCategoryCustomIcon = await readCustomIconFile(input);
+    syncNewCategoryCustomControls();
+    setStatus(ui.categoryCreateCustomStatus, 'Custom SVG ready and fitted to the site icon slot.');
+  } catch (error) {
+    state.newCategoryCustomIcon = null;
+    syncNewCategoryCustomControls();
+    setStatus(ui.categoryCreateCustomStatus, error.message, 'error');
+  }
+}
+
+async function loadExistingCategoryCustomIcon(input) {
+  const key = input?.dataset.categoryCustomIcon;
+  if (!key || !state.draft?.categories?.[key]) return;
+  const status = cc$(`[data-category-custom-status="${CSS.escape(key)}"]`);
+  try {
+    const customIcon = await readCustomIconFile(input);
+    pushUndo(`categories.${key}.customIcon`, true);
+    state.draft.categories[key].icon = 'custom';
+    state.draft.categories[key].customIcon = customIcon;
+    populateForm();
+    updateSaveState('Custom category icon added to this draft');
+    toast(`${state.draft.categories[key].label} custom icon is ready. Publish to make it live.`);
+  } catch (error) {
+    setStatus(status, error.message, 'error');
+  }
 }
 
 function createCategoryFromPanel() {
@@ -299,6 +385,7 @@ function createCategoryFromPanel() {
   const key = categorySlug(label);
   const shortLabel = ui.categoryCreateShort?.value.trim() || label.slice(0, 20);
   const description = ui.categoryCreateDescription?.value.trim() || '';
+  const icon = ui.categoryCreateIcon?.value || 'tag';
   const showError = (message) => {
     if (!ui.categoryCreateError) return;
     ui.categoryCreateError.textContent = message;
@@ -309,6 +396,7 @@ function createCategoryFromPanel() {
   if (!key) return showError('That name cannot create a safe category key.');
   if (state.draft.categories[key]) return showError('A category with that name already exists.');
   if (description.length < 4) return showError('Add a short description so members know what belongs here.');
+  if (icon === 'custom' && !state.newCategoryCustomIcon) return showError('Choose a valid custom SVG or select a preset icon.');
 
   const orders = Object.values(state.draft.categories).map((category) => Number(category.order) || 0);
   pushUndo('categories', true);
@@ -318,8 +406,9 @@ function createCategoryFromPanel() {
     description: description.slice(0, 180),
     visible: true,
     order: Math.min(99, Math.max(1, ...orders) + 1),
-    icon: ui.categoryCreateIcon?.value || 'tag',
+    icon,
     accent: ui.categoryCreateAccent?.value || 'lime',
+    ...(icon === 'custom' ? { customIcon: clone(state.newCategoryCustomIcon) } : {}),
   };
 
   if (ui.categoryCreateLabel) ui.categoryCreateLabel.value = '';
@@ -327,9 +416,12 @@ function createCategoryFromPanel() {
   if (ui.categoryCreateDescription) ui.categoryCreateDescription.value = '';
   if (ui.categoryCreateIcon) ui.categoryCreateIcon.value = 'tag';
   if (ui.categoryCreateAccent) ui.categoryCreateAccent.value = 'lime';
+  if (ui.categoryCreateCustomInput) ui.categoryCreateCustomInput.value = '';
   if (ui.categoryCreateError) ui.categoryCreateError.hidden = true;
+  state.newCategoryCustomIcon = null;
 
   populateForm();
+  syncNewCategoryCustomControls();
   updateSaveState('Custom category added to this draft');
   toast(`${state.draft.categories[key].label} added. Publish the site to make it available everywhere.`);
 }
@@ -357,6 +449,7 @@ function populateForm() {
     field.value = getPath(state.draft, field.dataset.setting) ?? '';
   });
   syncControls();
+  syncNewCategoryCustomControls();
   renderPreview();
 }
 
@@ -402,7 +495,7 @@ function renderPreview() {
     categories.innerHTML = Object.values(settings.categories)
       .filter((category) => category.visible)
       .sort((left, right) => left.order - right.order)
-      .map((category) => `<span class="accent-${escapeHtml(category.accent || 'lime')}">${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)} ${escapeHtml(category.label)}</span>`)
+      .map((category) => `<span class="accent-${escapeHtml(category.accent || 'lime')}">${categoryIconSvgMarkup(category.icon, category.customIcon, 'cc-preview-category-icon')} ${escapeHtml(category.label)}</span>`)
       .join('');
   }
 
@@ -463,6 +556,7 @@ function discard() {
   state.draft = clone(state.published);
   state.undo = [];
   state.redo = [];
+  state.newCategoryCustomIcon = null;
   storageRemove(KEYS.draft);
   populateForm();
   updateSaveState('Draft discarded');
@@ -489,6 +583,7 @@ async function publish() {
     state.sha = output.sha || state.sha;
     state.undo = [];
     state.redo = [];
+    state.newCategoryCustomIcon = null;
     storageRemove(KEYS.draft);
     storageRemove(KEYS.staleDraft);
     settingsRuntime().set(output);
@@ -559,7 +654,25 @@ document.addEventListener('input', (event) => {
   mutate(field.dataset.setting, fieldValue(field));
 });
 
-document.addEventListener('change', (event) => {
+document.addEventListener('change', async (event) => {
+  const createCustomInput = event.target.closest?.('[data-category-create-custom-icon]');
+  if (createCustomInput) {
+    await loadNewCategoryCustomIcon(createCustomInput);
+    return;
+  }
+
+  const existingCustomInput = event.target.closest?.('[data-category-custom-icon]');
+  if (existingCustomInput) {
+    await loadExistingCategoryCustomIcon(existingCustomInput);
+    return;
+  }
+
+  if (event.target === ui.categoryCreateIcon) {
+    if (ui.categoryCreateIcon.value !== 'custom') state.newCategoryCustomIcon = null;
+    syncNewCategoryCustomControls();
+    return;
+  }
+
   const field = event.target.closest?.('[data-setting]');
   if (!field) return;
   if (field instanceof HTMLSelectElement) mutate(field.dataset.setting, fieldValue(field), true);
@@ -615,6 +728,7 @@ window.addEventListener('pagehide', saveLocalDraft);
 
 setSection(window.location.hash.replace('#', '') || 'methods');
 setPreviewDevice(storageGet(KEYS.previewDevice) || 'phone');
+syncNewCategoryCustomControls();
 normalizeUnlockButton();
 
 if (ui.loginForm) {

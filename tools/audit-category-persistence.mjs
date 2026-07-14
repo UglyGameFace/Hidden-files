@@ -16,7 +16,7 @@ const gamingCategory = {
   label: 'Gaming Deals',
   shortLabel: 'Gaming',
   description: 'Console, game, accessory, and subscription methods.',
-  icon: 'tag',
+  icon: 'gamepad',
   accent: 'violet',
   visible: true,
   order: 4,
@@ -99,7 +99,7 @@ for (const [name, source] of [
 }
 
 console.log('\nCATEGORY PERSISTENCE AUDIT PASSED\n');
-console.log('✓ gaming-deals survives sanitizer, serialization, and reload unchanged.');
+console.log('✓ gaming-deals and its gamepad icon survive sanitizer, serialization, and reload unchanged.');
 console.log('✓ New Method reloads the published canonical registry after category publishing.');
 console.log('✓ Method validation and atomic save accept the custom category.');
 console.log('✓ Astro check/build validates a non-public guide using gaming-deals.');

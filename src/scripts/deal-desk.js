@@ -1,3 +1,8 @@
+import {
+  categoryIconSvgMarkup,
+  parseCustomIconSvg,
+} from '../lib/category-icons.js';
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -41,12 +46,17 @@ const elements = {
   categoryDescription: $('[data-method-category-description]'),
   categoryIcon: $('[data-method-category-icon]'),
   categoryAccent: $('[data-method-category-accent]'),
+  categoryCustomWrap: $('[data-method-category-custom-wrap]'),
+  categoryCustomInput: $('[data-method-category-custom-icon]'),
+  categoryCustomPreview: $('[data-method-category-custom-preview]'),
+  categoryCustomStatus: $('[data-method-category-custom-status]'),
 };
 
 const state = {
   guides: [],
   categories: {},
   pendingCategories: {},
+  pendingMethodCustomIcon: null,
   selectedId: null,
   working: null,
   category: '',
@@ -54,15 +64,6 @@ const state = {
   draft: false,
   filter: 'all',
   confirmAction: null,
-};
-
-const CATEGORY_GLYPHS = {
-  loop: '↻',
-  food: '⌁',
-  tag: '◇',
-  spark: '✦',
-  book: '▤',
-  shield: '⬡',
 };
 
 async function api(path, options = {}) {
@@ -242,7 +243,7 @@ function renderCategoryPicker() {
   const entries = categoryEntries().filter(([key, category]) => category.visible !== false || key === state.category);
   elements.categoryPicker.innerHTML = entries.map(([key, category]) => `
     <button type="button" class="accent-${escapeHtml(category.accent || 'lime')}" data-category="${escapeHtml(key)}" aria-pressed="${key === state.category}">
-      <span>${escapeHtml(CATEGORY_GLYPHS[category.icon] || CATEGORY_GLYPHS.tag)}</span>
+      <span>${categoryIconSvgMarkup(category.icon, category.customIcon, 'desk-category-icon-svg')}</span>
       <strong>${escapeHtml(category.label)}</strong>
       <small>${escapeHtml(category.description)}${category.visible === false ? ' · hidden category' : ''}</small>
     </button>
@@ -253,9 +254,59 @@ function renderCategoryPicker() {
   selectCategory(state.category || defaultCategoryKey());
 }
 
+function setMethodCustomStatus(message, type = 'ok') {
+  if (!elements.categoryCustomStatus) return;
+  elements.categoryCustomStatus.textContent = message;
+  elements.categoryCustomStatus.dataset.type = type;
+  elements.categoryCustomStatus.hidden = false;
+}
+
+function syncMethodCustomControls() {
+  const isCustom = elements.categoryIcon?.value === 'custom';
+  if (elements.categoryCustomWrap) elements.categoryCustomWrap.hidden = !isCustom;
+  if (elements.categoryCustomPreview) {
+    elements.categoryCustomPreview.innerHTML = categoryIconSvgMarkup(
+      isCustom ? 'custom' : elements.categoryIcon?.value || 'tag',
+      state.pendingMethodCustomIcon,
+      'cc-category-icon-svg',
+    );
+  }
+  if (elements.categoryCustomStatus) {
+    elements.categoryCustomStatus.hidden = !isCustom;
+    if (isCustom) {
+      setMethodCustomStatus(
+        state.pendingMethodCustomIcon
+          ? 'Custom SVG ready and fitted to the site icon slot.'
+          : 'Choose a path-based outline SVG.',
+        state.pendingMethodCustomIcon ? 'ok' : 'muted',
+      );
+    }
+  }
+}
+
+async function readCustomIconFile(input) {
+  const file = input?.files?.[0];
+  if (!file) throw new Error('Choose an SVG file.');
+  if (file.size > 64 * 1024) throw new Error('Keep the SVG under 64 KB.');
+  return parseCustomIconSvg(await file.text());
+}
+
+async function loadMethodCustomIcon() {
+  try {
+    state.pendingMethodCustomIcon = await readCustomIconFile(elements.categoryCustomInput);
+    syncMethodCustomControls();
+    setMethodCustomStatus('Custom SVG ready and fitted to the site icon slot.');
+  } catch (error) {
+    state.pendingMethodCustomIcon = null;
+    syncMethodCustomControls();
+    setMethodCustomStatus(error.message, 'error');
+  }
+}
+
 function showCategoryCreator(show) {
   if (elements.categoryCreator) elements.categoryCreator.hidden = !show;
   if (elements.categoryCreateError) elements.categoryCreateError.hidden = true;
+  syncMethodCustomControls();
   if (show) elements.categoryLabel?.focus();
 }
 
@@ -265,7 +316,10 @@ function clearCategoryCreator() {
   if (elements.categoryDescription) elements.categoryDescription.value = '';
   if (elements.categoryIcon) elements.categoryIcon.value = 'tag';
   if (elements.categoryAccent) elements.categoryAccent.value = 'lime';
+  if (elements.categoryCustomInput) elements.categoryCustomInput.value = '';
   if (elements.categoryCreateError) elements.categoryCreateError.hidden = true;
+  state.pendingMethodCustomIcon = null;
+  syncMethodCustomControls();
 }
 
 function createPendingCategory() {
@@ -273,6 +327,7 @@ function createPendingCategory() {
   const key = categorySlug(label);
   const shortLabel = elements.categoryShort?.value.trim() || label.slice(0, 20);
   const description = elements.categoryDescription?.value.trim() || '';
+  const icon = elements.categoryIcon?.value || 'tag';
   const error = elements.categoryCreateError;
 
   const fail = (message) => {
@@ -286,6 +341,7 @@ function createPendingCategory() {
   if (!key) return fail('That name cannot create a safe category key.');
   if (state.categories[key]) return fail('A category with that name already exists.');
   if (description.length < 4) return fail('Add a short description so members know what belongs here.');
+  if (icon === 'custom' && !state.pendingMethodCustomIcon) return fail('Choose a valid custom SVG or select a preset icon.');
 
   const orders = categoryEntries().map(([, category]) => Number(category.order) || 0);
   const definition = {
@@ -294,8 +350,9 @@ function createPendingCategory() {
     description: description.slice(0, 180),
     visible: true,
     order: Math.min(99, Math.max(1, ...orders) + 1),
-    icon: elements.categoryIcon?.value || 'tag',
+    icon,
     accent: elements.categoryAccent?.value || 'lime',
+    ...(icon === 'custom' ? { customIcon: structuredClone(state.pendingMethodCustomIcon) } : {}),
   };
 
   state.categories[key] = definition;
@@ -492,6 +549,7 @@ function populateEditor(guide) {
   setToggle(elements.featureToggle, state.featured, 'Featured', 'Not featured');
   setToggle(elements.draftToggle, state.draft, 'Hidden draft', 'Public');
   renderLiveStatus(guide);
+  clearCategoryCreator();
   showCategoryCreator(false);
 
   if (elements.publicGuide) {
@@ -584,6 +642,7 @@ async function loadGuides() {
   state.guides = guideOutput.guides || [];
   state.categories = structuredClone(settingsOutput.settings?.categories || {});
   state.pendingCategories = {};
+  state.pendingMethodCustomIcon = null;
   if (!state.category || !state.categories[state.category]) state.category = defaultCategoryKey();
   renderCategoryPicker();
   renderStats();
@@ -645,6 +704,11 @@ $('[data-cancel-method-category]')?.addEventListener('click', () => {
   showCategoryCreator(false);
 });
 $('[data-create-method-category]')?.addEventListener('click', createPendingCategory);
+elements.categoryIcon?.addEventListener('change', () => {
+  if (elements.categoryIcon.value !== 'custom') state.pendingMethodCustomIcon = null;
+  syncMethodCustomControls();
+});
+elements.categoryCustomInput?.addEventListener('change', loadMethodCustomIcon);
 
 elements.featureToggle?.addEventListener('click', () => {
   state.featured = !state.featured;
@@ -758,6 +822,7 @@ elements.editor?.addEventListener('submit', async (event) => {
     state.selectedId = output.guide.id;
     state.categories = structuredClone(output.categories || state.categories);
     state.pendingCategories = {};
+    state.pendingMethodCustomIcon = null;
     const runtimeValue = settingsRuntime().value;
     if (runtimeValue?.settings) {
       settingsRuntime().set({
@@ -808,6 +873,8 @@ document.addEventListener('keydown', (event) => {
   else if (elements.categoryCreator && !elements.categoryCreator.hidden) showCategoryCreator(false);
   else closePicker();
 });
+
+syncMethodCustomControls();
 
 (async () => {
   try {
