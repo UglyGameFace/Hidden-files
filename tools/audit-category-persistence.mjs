@@ -86,7 +86,8 @@ assert.ok(methodClient.includes('consumeSettingsCategoryDraft'), 'New Method doe
 assert.ok(methodClient.includes('renderCategoryPicker()'), 'New Method does not render its category picker from runtime categories.');
 assert.ok(methodClient.includes('output.settingsSha'), 'New Method does not preserve the updated settings SHA after an atomic category save.');
 assert.ok(!controlPage.includes("document.querySelector<HTMLButtonElement>('[data-refresh]')?.click()"), 'The old page-level refresh bridge still exists.');
-assert.ok(saveApi.includes('validateGuide(body, Object.keys(siteSettings.categories))'), 'Method saves are not validated against the canonical category registry.');
+assert.ok(saveApi.includes('Object.keys(siteSettings.categories)'), 'Method saves are not validated against the canonical category registry.');
+assert.ok(saveApi.includes('validateGuide('), 'Method saves no longer validate guide content.');
 assert.ok(saveApi.includes('writeRepoFiles'), 'Category/method/status writes are not atomic.');
 assert.ok(contentSchema.includes('Category must be a safe lowercase slug.'), 'Astro content validation still rejects custom category slugs.');
 assert.ok(astroFixture.includes('category: gaming-deals'), 'The Astro regression fixture is not using the non-default category.');
