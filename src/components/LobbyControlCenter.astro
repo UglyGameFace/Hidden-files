@@ -1,4 +1,5 @@
 ---
+import CategoryIconOptions from './CategoryIconOptions.astro';
 import SiteSettingsPanels from './SiteSettingsPanels.astro';
 ---
 
@@ -148,8 +149,17 @@ import SiteSettingsPanels from './SiteSettingsPanels.astro';
                     <label class="desk-field"><span>Full label</span><input data-method-category-label maxlength="48" placeholder="Gaming Deals" /></label>
                     <label class="desk-field"><span>Short label</span><input data-method-category-short maxlength="20" placeholder="Gaming" /></label>
                     <label class="desk-field desk-field-wide"><span>Description</span><textarea data-method-category-description rows="2" maxlength="180" placeholder="Console, game, accessory, and subscription methods."></textarea></label>
-                    <label class="desk-field"><span>Icon</span><select data-method-category-icon><option value="tag">Price tag</option><option value="spark">Spark</option><option value="book">Guide book</option><option value="shield">Shield</option><option value="loop">Loop</option><option value="food">Food</option></select></label>
+                    <label class="desk-field"><span>Icon</span><select data-method-category-icon><CategoryIconOptions /></select></label>
                     <label class="desk-field"><span>Accent</span><select data-method-category-accent><option value="lime">Lobby Lime</option><option value="cyan">Signal Cyan</option><option value="amber">Alert Amber</option><option value="violet">Discord Violet</option></select></label>
+                    <div class="desk-field desk-field-wide desk-custom-icon-upload" data-method-category-custom-wrap hidden>
+                      <span>Custom SVG</span>
+                      <div class="cc-custom-icon-row">
+                        <label class="cc-custom-icon-file"><input type="file" accept=".svg,image/svg+xml" data-method-category-custom-icon /><strong>Choose SVG</strong><small>Path-based outline file</small></label>
+                        <div class="cc-custom-icon-preview" data-method-category-custom-preview aria-label="Custom icon preview"></div>
+                      </div>
+                      <small>Any valid viewBox is centered and scaled into the fixed site icon slot. Simple outline SVGs without transforms work best.</small>
+                      <p data-method-category-custom-status hidden></p>
+                    </div>
                   </div>
                   <p data-method-category-error hidden></p>
                   <div><button type="button" data-cancel-method-category>Cancel</button><button type="button" data-create-method-category>Create and select</button></div>
