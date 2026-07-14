@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import {
+  CATEGORY_ICON_KEYS,
+  sanitizeCustomIconDefinition,
+} from '../src/lib/category-icons.js';
 
 const root = process.cwd();
 const failures = [];
@@ -133,7 +137,7 @@ for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'getPublicGuideL
 const sidebar = read('src/components/Sidebar.astro');
 const mobileHeader = read('src/components/MobileHeader.astro');
 for (const [name, content] of [['Sidebar', sidebar], ['MobileHeader', mobileHeader]]) {
-  for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'data-guide-nav-id', 'guideLinks', 'getCategory']) {
+  for (const required of ['PUBLIC_PAGE_LINKS', 'OWNER_PAGE_LINK', 'data-guide-nav-id', 'guideLinks', 'getCategory', 'customIcon=']) {
     if (!content.includes(required)) fail(`${name} is not exposing required navigation/category source: ${required}`);
   }
   if (content.includes('getPublicGuideLinks(')) fail(`${name} must receive the shared guide list instead of loading the collection again.`);
@@ -159,7 +163,10 @@ if (baseLayout.indexOf('/site-status.js?v=') > baseLayout.indexOf('/navigation-b
 const guidePage = read('src/pages/guides/[...id].astro');
 if (occurrences(guidePage, "getCollection('hacks'") !== 1) fail('Guide pages must build routes and related guides from one content-collection pass.');
 if (!guidePage.includes('getCategory(')) fail('Guide pages must resolve category metadata through the safe dynamic registry.');
-if (!read('src/components/HackCard.astro').includes('getCategory(')) fail('Guide cards must resolve category metadata through the safe dynamic registry.');
+if (!guidePage.includes('customIcon={category.customIcon}')) fail('Guide pages must render custom category icons through the shared component.');
+const hackCard = read('src/components/HackCard.astro');
+if (!hackCard.includes('getCategory(')) fail('Guide cards must resolve category metadata through the safe dynamic registry.');
+if (!hackCard.includes('customIcon={category.customIcon}')) fail('Guide cards must render custom category icons through the shared component.');
 
 const directStatusConsumers = ['src/pages/index.astro', 'src/pages/guides/[...id].astro', 'public/navigation-buttons.js'];
 for (const path of directStatusConsumers) {
@@ -176,7 +183,7 @@ if (contentSchema.includes("z.enum(['cashback-loops'")) fail('Guide content sche
 if (!contentSchema.includes('Category must be a safe lowercase slug.')) fail('Guide content schema is missing safe custom-category slug validation.');
 
 const siteSettingsServer = read('server/site-settings.js');
-for (const required of ['safeCategoryKey', 'sanitizeCategoryDefinition', 'CATEGORY_ICON_PRESETS', 'CATEGORY_ACCENT_PRESETS', 'serializeSiteSettings']) {
+for (const required of ['safeCategoryKey', 'sanitizeCategoryDefinition', 'CATEGORY_ICON_PRESETS', 'CATEGORY_ACCENT_PRESETS', 'serializeSiteSettings', 'sanitizeCustomIconDefinition']) {
   if (!siteSettingsServer.includes(required)) fail(`Dynamic site settings are missing: ${required}`);
 }
 if (siteSettingsServer.includes("const CATEGORY_KEYS = ['cashback-loops'")) fail('Site settings still discard categories outside the original fixed list.');
@@ -192,19 +199,19 @@ for (const required of ['categoryDefinition', 'writeRepoFiles', 'SITE_SETTINGS_P
   if (!saveApi.includes(required)) fail(`Atomic category/method save is missing: ${required}`);
 }
 
-const dealDeskClient = read('public/deal-desk.js');
-for (const required of ['pendingCategories', 'data-method-category-creator', 'categoryDefinition:', 'renderCategoryPicker', 'LobbySettingsRuntime']) {
+const dealDeskClient = read('src/scripts/deal-desk.js');
+for (const required of ['pendingCategories', 'data-method-category-creator', 'categoryDefinition:', 'renderCategoryPicker', 'LobbySettingsRuntime', 'parseCustomIconSvg', 'categoryIconSvgMarkup']) {
   if (!dealDeskClient.includes(required)) fail(`Method editor custom-category workflow is missing: ${required}`);
 }
 
-const controlClient = read('public/control-center.js');
-for (const required of ['renderCategoryEditors', 'createCategoryFromPanel', 'data-category-stack', 'CATEGORY_GLYPHS', 'LobbySettingsRuntime']) {
+const controlClient = read('src/scripts/control-center.js');
+for (const required of ['renderCategoryEditors', 'createCategoryFromPanel', 'data-category-stack', 'LobbySettingsRuntime', 'parseCustomIconSvg', 'categoryIconSvgMarkup']) {
   if (!controlClient.includes(required)) fail(`Control Center dynamic category workflow is missing: ${required}`);
 }
-for (const required of ['data-category-create', 'data-category-stack']) {
+for (const required of ['data-category-create', 'data-category-stack', 'data-category-create-custom-icon']) {
   if (!settingsPanels.includes(required)) fail(`Category panel is missing UI hook: ${required}`);
 }
-for (const required of ['data-open-method-category', 'data-method-category-creator', 'data-category-picker']) {
+for (const required of ['data-open-method-category', 'data-method-category-creator', 'data-category-picker', 'data-method-category-custom-icon']) {
   if (!shell.includes(required)) fail(`Method editor is missing custom-category UI hook: ${required}`);
 }
 
@@ -216,7 +223,7 @@ const categoryKeys = Object.keys(settings.categories || {});
 const builtins = ['cashback-loops', 'food-hacks', 'retail-deals'];
 for (const key of builtins) if (!categoryKeys.includes(key)) fail(`Required starter category is missing: ${key}`);
 const safeCategory = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
-const icons = new Set(['loop', 'food', 'tag', 'spark', 'book', 'shield']);
+const icons = new Set([...CATEGORY_ICON_KEYS, 'custom']);
 const accents = new Set(['lime', 'cyan', 'amber', 'violet']);
 for (const [key, category] of Object.entries(settings.categories || {})) {
   if (!safeCategory.test(key)) fail(`Unsafe category key in site-settings.json: ${key}`);
@@ -224,6 +231,7 @@ for (const [key, category] of Object.entries(settings.categories || {})) {
   if (typeof category.visible !== 'boolean') fail(`Category ${key} is missing a boolean visibility setting.`);
   if (!Number.isInteger(category.order) || category.order < 1 || category.order > 99) fail(`Category ${key} has invalid order.`);
   if (!icons.has(category.icon)) fail(`Category ${key} has unsupported icon: ${category.icon}`);
+  if (category.icon === 'custom' && !sanitizeCustomIconDefinition(category.customIcon)) fail(`Category ${key} has an invalid custom icon.`);
   if (!accents.has(category.accent)) fail(`Category ${key} has unsupported accent: ${category.accent}`);
 }
 if (!['lime', 'cyan', 'amber', 'violet'].includes(settings.theme?.accentPreset)) fail('Unsupported accent preset.');
@@ -235,7 +243,7 @@ for (const source of ['/_astro/(.*)', '/site-status.js', '/navigation-buttons.js
   if (!headerSources.has(source)) fail(`Vercel freshness headers are missing route: ${source}`);
 }
 
-for (const path of ['public/deal-desk.js', 'public/control-center.js', 'public/site-status.js', 'public/navigation-buttons.js', 'server/deal-desk.js', 'server/site-settings.js', 'api/deal-desk-save.js']) {
+for (const path of ['src/scripts/deal-desk.js', 'src/scripts/control-center.js', 'src/lib/category-icons.js', 'public/site-status.js', 'public/navigation-buttons.js', 'server/deal-desk.js', 'server/site-settings.js', 'api/deal-desk-save.js']) {
   const result = spawnSync(process.execPath, ['--check', path], { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) fail(`${path} failed syntax validation:\n${result.stderr.trim()}`);
 }
@@ -258,6 +266,7 @@ passed.push(`${cssFiles.length} stylesheets have balanced blocks.`);
 passed.push('Modal backdrops have one owning stylesheet each, with responsive overrides allowed inside that owner.');
 passed.push(`${tabs.length} editor tabs map one-to-one with panels and the shared navigation registry.`);
 passed.push(`${categoryKeys.length} registered categories passed key, copy, icon, accent, visibility, and order validation.`);
+passed.push(`${CATEGORY_ICON_KEYS.length} shared outline icon presets and sanitized custom SVG icons are supported.`);
 passed.push('Custom categories flow through the content schema, settings registry, method editor, atomic save, public cards, guide pages, filters, and navigation.');
 passed.push('A category and its first method are committed together, preventing broken intermediate deployments.');
 passed.push('Public navigation loads one guide collection per page and guide routes use one collection pass.');
