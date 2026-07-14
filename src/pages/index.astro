@@ -37,17 +37,23 @@ const trustIcons = ['shield', 'spark', 'clock'] as const;
     </div>
 
     {SITE_SETTINGS.homepage.showTerminal && (
-      <details class="hero-console" data-mobile-console>
-        <summary class="console-mobile-summary">
+      <div class="hero-console" data-mobile-console data-expanded="false">
+        <button
+          type="button"
+          class="console-mobile-summary"
+          data-console-toggle
+          aria-expanded="false"
+          aria-controls="lobby-console-details"
+        >
           <span class="console-mobile-led" aria-hidden="true"></span>
           <span class="console-mobile-copy">
             <strong><span data-console-method-count>{hacks.length}</span> ACTIVE <span data-console-method-word>{methodWord}</span></strong>
             <small>System {SITE_SETTINGS.homepage.terminalStatus.toLowerCase()} · tap for details</small>
           </span>
           <b aria-hidden="true">⌄</b>
-        </summary>
+        </button>
         <div class="console-bar"><span></span><span></span><span></span><small>{SITE_SETTINGS.homepage.terminalTitle}</small></div>
-        <div class="console-body">
+        <div class="console-body" id="lobby-console-details">
           <p><span class="console-prompt">$</span> loading guide index...</p>
           <p><span class="console-ok">✓</span> {hacks.length} active field guides</p>
           <p><span class="console-ok">✓</span> {CATEGORY_ENTRIES.length} tactical categories</p>
@@ -55,7 +61,7 @@ const trustIcons = ['shield', 'spark', 'clock'] as const;
           <div class="console-divider"></div>
           <p class="console-dim">STATUS <span>{SITE_SETTINGS.homepage.terminalStatus}</span></p>
         </div>
-      </details>
+      </div>
     )}
   </section>
 
@@ -138,10 +144,20 @@ const trustIcons = ['shield', 'spark', 'clock'] as const;
   const count = document.querySelector('[data-result-count]');
   const empty = document.querySelector('[data-empty-state]');
   const clear = document.querySelector('[data-clear-search]');
+  const consolePanel = document.querySelector('[data-mobile-console]');
+  const consoleToggle = document.querySelector('[data-console-toggle]');
   const consoleMethodCount = document.querySelector('[data-console-method-count]');
   const consoleMethodWord = document.querySelector('[data-console-method-word]');
   let activeFilter = 'all';
   let liveStatuses = {};
+
+  if (consolePanel instanceof HTMLElement && consoleToggle instanceof HTMLButtonElement) {
+    consoleToggle.addEventListener('click', () => {
+      const expanded = consolePanel.dataset.expanded !== 'true';
+      consolePanel.dataset.expanded = String(expanded);
+      consoleToggle.setAttribute('aria-expanded', String(expanded));
+    });
+  }
 
   const params = new URLSearchParams(window.location.search);
   const initialCategory = params.get('category');
