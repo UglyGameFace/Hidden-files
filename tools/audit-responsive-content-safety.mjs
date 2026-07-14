@@ -12,7 +12,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 
 const currentSettings = JSON.parse(read('src/data/site-settings.json'));
 const manyCategories = Object.fromEntries(
-  Array.from({ length: 27 }, (_, index) => {
+  Array.from({ length: 26 }, (_, index) => {
     const number = index + 1;
     return [`responsive-category-${number}`, {
       label: `Responsive Category With A Long Safe Label ${number}`,
@@ -33,7 +33,7 @@ const sanitized = sanitizeSiteSettings({
   },
 });
 assert.equal(Object.keys(sanitized.categories).length, 30, 'The supported 30-category registry no longer survives sanitization.');
-assert.equal(sanitized.categories['responsive-category-27'].label, 'Responsive Category With A Long Safe Label 27');
+assert.equal(sanitized.categories['responsive-category-26'].label, 'Responsive Category With A Long Safe Label 26');
 
 const baseLayout = read('src/layouts/BaseLayout.astro');
 assert.ok(baseLayout.includes("import '../styles/responsive-content-safety.css';"), 'Public responsive safeguards are not loaded after the canonical layout system.');
