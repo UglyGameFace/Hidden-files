@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -113,6 +113,11 @@ for (const required of [
 const controlPage = read('src/pages/control-center.astro');
 assert.ok(controlPage.includes("../scripts/owner-readiness.js"), 'The owner readiness runtime is not compiled into the Control Center.');
 assert.ok(controlPage.includes('production-readiness.css'), 'The deployment state stylesheet is not loaded.');
+for (const obsolete of ['public/deal-desk.js', 'public/control-center.js']) {
+  assert.equal(existsSync(join(root, obsolete)), false, `Obsolete uncompiled owner runtime still exists: ${obsolete}`);
+}
+assert.ok(!JSON.stringify(vercel).includes('/deal-desk.js'), 'Vercel still carries a cache rule for the deleted raw Deal Desk runtime.');
+assert.ok(!JSON.stringify(vercel).includes('/control-center.js'), 'Vercel still carries a cache rule for the deleted raw Control Center runtime.');
 
 const focusScope = read('src/lib/focus-scope.js');
 for (const required of ['event.shiftKey', "event.key !== 'Tab'", 'returnFocus', 'onEscape']) {
@@ -166,3 +171,4 @@ console.log('✓ Owner publishes report the real Vercel result and block overlap
 console.log('✓ Mobile and owner dialogs trap focus, support Escape, and restore the opener.');
 console.log('✓ Public status refreshes survive stalled networks without hanging indefinitely.');
 console.log('✓ Security headers, private-route indexing rules, canonical URLs, robots, sitemap, and health checks are present.');
+console.log('✓ Obsolete raw owner runtimes and their stale cache rules are removed.');
