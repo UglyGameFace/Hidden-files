@@ -14,6 +14,12 @@ function xml(value: string) {
   })[character] || character);
 }
 
+function dateOnly(value: Date | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+}
+
 export const GET: APIRoute = async () => {
   const guides = await getCollection('hacks', ({ data }) => data.managed && !data.draft);
   const entries = [
@@ -22,7 +28,7 @@ export const GET: APIRoute = async () => {
       .sort((left, right) => left.id.localeCompare(right.id))
       .map((guide) => ({
         path: `/guides/${guide.id}/`,
-        lastmod: String(guide.data.updated || guide.data.published || '').slice(0, 10) || null,
+        lastmod: dateOnly(guide.data.updated || guide.data.published),
       })),
   ];
 
