@@ -4,7 +4,7 @@
 Audit and harden The 420 Lobby for responsive content management across phones, tablets, and desktops, with special focus on adding, editing, hiding, removing, and reordering methods and categories without overlap, clipping, accidental data loss, or negative public-site changes.
 
 ## Status
-Verified responsive and content-safety blockers have been implemented on `audit/responsive-content-safety`. Repository audits, Astro validation, Vercel preview, merge, production deployment, and final public checks remain.
+Implementation, cleanup, repository validation, and Vercel preview have passed on `audit/responsive-content-safety`. PR #26 is ready to merge; production deployment and final public checks remain.
 
 ## Scope
 - Inspect public homepage, guide cards, category strips, sidebar/rail, mobile drawer, search/filter controls, guide pages, footer, and empty states at narrow phone, tablet portrait, tablet landscape, desktop, short viewport, zoom, and long-content conditions.
@@ -25,7 +25,7 @@ Verified responsive and content-safety blockers have been implemented on `audit/
 ## Changes
 - Replaced the responsive terminal's closed `details` dependency with a stable desktop/tablet panel and an accessible mobile toggle, eliminating the blank tablet line.
 - Added a dynamic category strip that auto-fits on tablet/desktop and becomes a contained horizontal scroller on phones.
-- Contained large filter registries inside their own horizontal scroll area without widening the page.
+- Contained large filter registries inside their own horizontal scroll area without widening the page, while preserving the established tablet two-row layout.
 - Bounded long card labels while preserving readable status badges.
 - Made Control Center category pickers and preview tiles auto-fit their available space.
 - Added a visible method draft state and confirmation before any action that would discard unsaved method/category input.
@@ -33,12 +33,13 @@ Verified responsive and content-safety blockers have been implemented on `audit/
 - Added a responsive content-safety audit to every check and production build.
 
 ## Validation
-- Repository audits: pending Vercel preview.
-- Responsive/content-safety audit: pending Vercel preview.
-- JavaScript/static validation: pending Vercel preview.
-- Astro check: pending Vercel preview.
-- Production build: pending Vercel preview.
-- Vercel preview: pending.
+- Existing repository audits: passed through the Vercel production build command.
+- Responsive/content-safety audit: passed.
+- JavaScript/static validation: passed.
+- Astro check: passed.
+- Production build: passed.
+- Vercel preview for PR #26: passed.
+- Changed-file inspection: passed; no guide content, category data, status data, password configuration, branding values, or public copy changed.
 - Vercel production: pending merge.
 - Live public verification: pending production.
 
@@ -51,4 +52,4 @@ Verified responsive and content-safety blockers have been implemented on `audit/
 - Password-gated owner interactions require the owner password for a final physical-device acceptance pass; code paths, markup contracts, state transitions, and builds are covered directly.
 
 ## Backlog
-- Empty. Do not switch tasks until responsive content safety, cleanup, preview, merge, production deployment, and final checks are complete.
+- Empty. Do not switch tasks until PR #26 is merged, production deployment passes, and final checks are complete.
