@@ -66,6 +66,34 @@ const ACCENTS = {
 const BUILTIN_CATEGORIES = new Set(['cashback-loops', 'food-hacks', 'retail-deals']);
 const clone = (value) => value == null ? value : JSON.parse(JSON.stringify(value));
 const fingerprint = (value) => JSON.stringify(value);
+const isPlainObject = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+function applyLocalChanges(base, draft, target) {
+  if (!isPlainObject(base) || !isPlainObject(draft) || !isPlainObject(target)) {
+    return fingerprint(base) === fingerprint(draft) ? target : clone(draft);
+  }
+
+  for (const [key, draftValue] of Object.entries(draft)) {
+    if (!Object.hasOwn(base, key)) {
+      target[key] = clone(draftValue);
+      continue;
+    }
+
+    const baseValue = base[key];
+    if (isPlainObject(baseValue) && isPlainObject(draftValue)) {
+      const nextTarget = isPlainObject(target[key]) ? target[key] : {};
+      target[key] = applyLocalChanges(baseValue, draftValue, nextTarget);
+      continue;
+    }
+
+    if (fingerprint(baseValue) !== fingerprint(draftValue)) target[key] = clone(draftValue);
+  }
+  return target;
+}
+
+function rebaseDraft(previousPublished, previousDraft, nextPublished) {
+  return applyLocalChanges(previousPublished || {}, previousDraft || {}, clone(nextPublished));
+}
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -231,6 +259,16 @@ function pushUndo(path, force = false) {
   state.lastEditAt = now;
 }
 
+function emitCategoryDraft() {
+  if (!state.draft?.categories) return;
+  window.dispatchEvent(new CustomEvent('lobby-category-draft-change', {
+    detail: {
+      source: 'settings-editor',
+      categories: clone(state.draft.categories),
+    },
+  }));
+}
+
 function mutate(path, value, forceUndo = false) {
   if (!state.draft || state.loading) return;
   pushUndo(path, forceUndo);
@@ -238,6 +276,7 @@ function mutate(path, value, forceUndo = false) {
   syncControls();
   renderPreview();
   updateSaveState();
+  if (String(path).startsWith('categories.')) emitCategoryDraft();
 }
 
 function fieldValue(field) {
@@ -373,6 +412,7 @@ async function loadExistingCategoryCustomIcon(input) {
     state.draft.categories[key].customIcon = customIcon;
     populateForm();
     updateSaveState('Custom category icon added to this draft');
+    emitCategoryDraft();
     toast(`${state.draft.categories[key].label} custom icon is ready. Publish to make it live.`);
   } catch (error) {
     setStatus(status, error.message, 'error');
@@ -423,7 +463,51 @@ function createCategoryFromPanel() {
   populateForm();
   syncNewCategoryCustomControls();
   updateSaveState('Custom category added to this draft');
-  toast(`${state.draft.categories[key].label} added. Publish the site to make it available everywhere.`);
+  emitCategoryDraft();
+  toast(`${state.draft.categories[key].label} added to the shared draft. Publish the site or save a method using it.`);
+}
+
+function consumeMethodCategoryDraft(event) {
+  if (event.detail?.source !== 'method-editor' || !state.loaded || !state.draft || state.loading) return;
+  const key = String(event.detail?.key || '');
+  const definition = event.detail?.definition;
+  if (!key || !definition || typeof definition !== 'object') return;
+  if (fingerprint(state.draft.categories?.[key]) === fingerprint(definition)) return;
+
+  pushUndo('categories', true);
+  state.draft.categories[key] = clone(definition);
+  populateForm();
+  updateSaveState('New Method category added to the shared site draft');
+}
+
+function consumePublishedSettings(event) {
+  if (!state.loaded || state.loading) return;
+  const output = event.detail;
+  const nextPublished = output?.settings;
+  if (!nextPublished || typeof nextPublished !== 'object') return;
+  const nextSha = output.sha || output.settingsSha || state.sha;
+  if (fingerprint(nextPublished) === fingerprint(state.published) && nextSha === state.sha) return;
+
+  const previousPublished = clone(state.published);
+  const previousDraft = clone(state.draft);
+  const hadLocalChanges = Boolean(
+    previousPublished
+    && previousDraft
+    && fingerprint(previousPublished) !== fingerprint(previousDraft),
+  );
+
+  state.published = clone(nextPublished);
+  state.draft = hadLocalChanges
+    ? rebaseDraft(previousPublished, previousDraft, nextPublished)
+    : clone(nextPublished);
+  state.sha = nextSha;
+  state.undo = [];
+  state.redo = [];
+  populateForm();
+  updateSaveState(hadLocalChanges
+    ? 'Published changes synced; your local draft was preserved'
+    : 'Published changes synced across the Control Center');
+  emitCategoryDraft();
 }
 
 function syncControls() {
@@ -541,6 +625,7 @@ function undo() {
   state.draft = state.undo.pop();
   populateForm();
   updateSaveState('Previous edit restored');
+  emitCategoryDraft();
 }
 
 function redo() {
@@ -549,6 +634,7 @@ function redo() {
   state.draft = state.redo.pop();
   populateForm();
   updateSaveState('Edit reapplied');
+  emitCategoryDraft();
 }
 
 function discard() {
@@ -560,6 +646,7 @@ function discard() {
   storageRemove(KEYS.draft);
   populateForm();
   updateSaveState('Draft discarded');
+  emitCategoryDraft();
   toast('Unpublished website changes were discarded.');
 }
 
@@ -588,8 +675,9 @@ async function publish() {
     storageRemove(KEYS.staleDraft);
     settingsRuntime().set(output);
     populateForm();
+    emitCategoryDraft();
     toast(output.message || 'Website changes published.');
-    updateSaveState('Vercel deployment started');
+    updateSaveState('Vercel deployment started; open public pages will update automatically');
   } catch (error) {
     toast(error.message, 'error');
     updateSaveState('Publish failed — draft is still saved locally');
@@ -632,6 +720,7 @@ async function loadSettings({ force = false } = {}) {
     state.redo = [];
     state.loaded = true;
     populateForm();
+    emitCategoryDraft();
   } catch (error) {
     toast(error.message, 'error');
     updateSaveState('Unable to load website settings');
@@ -690,6 +779,9 @@ document.addEventListener('click', (event) => {
   const choice = event.target.closest?.('[data-setting-choice]');
   if (choice) mutate(choice.dataset.settingChoice, choice.dataset.choiceValue, true);
 });
+
+window.addEventListener('lobby-category-draft-change', consumeMethodCategoryDraft);
+window.addEventListener('lobby-settings-loaded', consumePublishedSettings);
 
 cc$('[data-category-create]')?.addEventListener('click', createCategoryFromPanel);
 cc$$('[data-cc-open-preview]').forEach((button) => button.addEventListener('click', openPreview));
