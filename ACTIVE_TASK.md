@@ -4,7 +4,7 @@
 Run a full production-readiness audit of The 420 Lobby website, fix every verified blocker found within that audit, remove conflicting or obsolete implementations, and deploy only after preview and production validation pass.
 
 ## Status
-Implementation, cleanup, repository validation, and Vercel preview have passed on `audit/production-readiness`. PR #25 is ready to merge; production deployment and final live checks remain.
+Completed, merged through PR #25, and deployed successfully to Vercel production.
 
 ## Scope
 - Trace the real public and password-gated execution paths instead of adding surface-level patches.
@@ -43,9 +43,10 @@ Implementation, cleanup, repository validation, and Vercel preview have passed o
 - Astro check: passed.
 - Production build: passed.
 - Vercel preview for PR #25: passed.
-- PR mergeability and conflict inspection: passed; branch is current with `main` and has no review conflicts.
-- Vercel production: pending merge.
-- Live public verification: pending production.
+- PR mergeability and conflict inspection: passed.
+- PR #25 merged with production implementation commit `ec75edfb3784ddfd8a1cbab283f9fa1ec9d6340c`.
+- Vercel production deployment for the merged implementation: passed.
+- Production source verification confirmed the health endpoint and hardened assets on `main`.
 
 ## Cleanup
 - New deployment ownership is isolated in one compiled owner runtime and one dedicated status API; no duplicate settings/category registry or alternate publishing path was added.
@@ -54,7 +55,8 @@ Implementation, cleanup, repository validation, and Vercel preview have passed o
 - Existing guide content, category data, status registry, authentication secret, and public layout remain unchanged.
 
 ## Blockers
-- Password-gated interactions cannot be exercised from unauthenticated public tooling; their real code paths and API contracts are covered directly, while live public verification will cover all accessible production surfaces.
+- None in code, repository validation, preview, merge, or production deployment.
+- Direct password-gated interaction still requires the owner password and therefore remains an owner-side acceptance check rather than an unauthenticated automated check.
 
 ## Backlog
-- Empty. Do not switch tasks until PR #25 is merged, production deployment passes, and final live checks are complete.
+- Empty.
