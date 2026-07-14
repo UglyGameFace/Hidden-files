@@ -79,10 +79,13 @@ assert.ok(!settingsServer.includes("const CATEGORY_KEYS = ['cashback-loops'"), '
 assert.ok(settingsServer.includes('Object.keys(incoming)'), 'The canonical settings sanitizer does not enumerate custom category keys.');
 assert.ok(controlClient.includes('state.draft.categories[key]'), 'The Categories panel is not adding categories to the publish draft.');
 assert.ok(controlClient.includes('settingsRuntime().set(output)'), 'Publishing does not update the shared settings runtime.');
-assert.ok(methodClient.includes("settingsRuntime().get()"), 'New Method does not load the canonical settings registry.');
+assert.ok(controlClient.includes('consumePublishedSettings'), 'The Categories panel does not consume categories published by New Method.');
+assert.ok(controlClient.includes('consumeMethodCategoryDraft'), 'The Categories panel does not consume New Method category drafts.');
+assert.ok(methodClient.includes('consumePublishedSettings'), 'New Method does not consume the canonical published registry.');
+assert.ok(methodClient.includes('consumeSettingsCategoryDraft'), 'New Method does not consume Categories panel drafts.');
 assert.ok(methodClient.includes('renderCategoryPicker()'), 'New Method does not render its category picker from runtime categories.');
-assert.ok(controlPage.includes("window.addEventListener('lobby-settings-loaded'"), 'The method editor does not synchronize after a category publish.');
-assert.ok(controlPage.includes("document.querySelector<HTMLButtonElement>('[data-refresh]')?.click()"), 'The published registry is not reloaded into the method editor.');
+assert.ok(methodClient.includes('output.settingsSha'), 'New Method does not preserve the updated settings SHA after an atomic category save.');
+assert.ok(!controlPage.includes("document.querySelector<HTMLButtonElement>('[data-refresh]')?.click()"), 'The old page-level refresh bridge still exists.');
 assert.ok(saveApi.includes('validateGuide(body, Object.keys(siteSettings.categories))'), 'Method saves are not validated against the canonical category registry.');
 assert.ok(saveApi.includes('writeRepoFiles'), 'Category/method/status writes are not atomic.');
 assert.ok(contentSchema.includes('Category must be a safe lowercase slug.'), 'Astro content validation still rejects custom category slugs.');
@@ -100,7 +103,7 @@ for (const [name, source] of [
 
 console.log('\nCATEGORY PERSISTENCE AUDIT PASSED\n');
 console.log('✓ gaming-deals and its gamepad icon survive sanitizer, serialization, and reload unchanged.');
-console.log('✓ New Method reloads the published canonical registry after category publishing.');
-console.log('✓ Method validation and atomic save accept the custom category.');
+console.log('✓ Categories and New Method synchronize drafts and published registries in both directions.');
+console.log('✓ Method validation and atomic save accept the custom category and return the new settings SHA.');
 console.log('✓ Astro check/build validates a non-public guide using gaming-deals.');
 console.log('✓ Public cards, navigation, filters, and guide pages remain registry-driven.');
