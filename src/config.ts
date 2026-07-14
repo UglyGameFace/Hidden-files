@@ -53,7 +53,7 @@ export const SITE = {
     SITE_SETTINGS.discord.inviteUrl ||
     import.meta.env.PUBLIC_DISCORD_INVITE_URL ||
     'https://discord.gg/your-permanent-invite',
-  siteUrl: import.meta.env.PUBLIC_SITE_URL ?? 'https://example.vercel.app',
+  siteUrl: import.meta.env.PUBLIC_SITE_URL ?? 'https://the-420-lobby-hacks.vercel.app',
 } as const;
 
 export const CATEGORIES: Record<string, CategoryDefinition> = Object.fromEntries(
