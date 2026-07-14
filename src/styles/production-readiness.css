@@ -77,9 +77,9 @@
   box-shadow: 0 0 10px rgba(255,105,97,.45);
 }
 
-.is-deployment-locked {
-  cursor: wait !important;
-  opacity: .48 !important;
+html[data-deployment-pending="true"] .is-deployment-locked {
+  cursor: wait;
+  opacity: .48;
 }
 
 @keyframes cc-deployment-pulse {
