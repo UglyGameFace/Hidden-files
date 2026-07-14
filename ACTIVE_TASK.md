@@ -1,49 +1,40 @@
 # Active Task
 
 ## Task
-Remove manual sort-order management from normal method posting and assign guide placement automatically on the server.
+Run a full production-readiness audit of The 420 Lobby website, fix every verified blocker found within that audit, remove conflicting or obsolete implementations, and deploy only after preview and production validation pass.
 
 ## Status
-Implemented, merged through PR #24, and deployed to production.
+Active on `audit/production-readiness`. Repository, live public behavior, owner workflows, failure handling, accessibility, security boundaries, responsive behavior, and deployment recovery are being traced before implementation.
 
 ## Scope
-- Remove the internal Sort order number from the New Method and Edit Method form.
-- Automatically place each newly created managed method after the existing managed methods.
-- Preserve the current placement when an existing method is edited.
-- Keep featured methods ahead of non-featured methods as the homepage already does.
-- Keep the internal order in guide frontmatter so public sorting remains deterministic.
-- Preserve all existing methods, content, categories, authentication, publishing, status controls, and layout.
+- Trace the real public and password-gated execution paths instead of adding surface-level patches.
+- Verify create, edit, publish, hide, pause, expire, reload, and deployment-refresh behavior across methods, categories, settings, navigation, cards, guide pages, and related guides.
+- Inspect authentication, session handling, same-origin protection, GitHub writes, Vercel deployment state, concurrent edits, local draft recovery, API failure states, and public fallbacks.
+- Verify phone, tablet, desktop, keyboard, reduced-motion, accessibility semantics, and slow/failing network behavior from code and available live endpoints.
+- Preserve all existing guide content, categories, owner password behavior, visual identity, and unrelated features.
+- Add regression audits for every verified issue fixed.
 
-## Root Cause
-- The method editor exposed the internal `order` frontmatter value as a normal owner input.
-- Every blank method was initialized with the arbitrary value `20`, even though the owner did not need or intend to manage numeric ordering.
-- The save API trusted the form value instead of owning placement itself.
+## Findings
+- Pending full trace.
 
 ## Changes
-- Removed the visible Sort order field from the normal method form.
-- Added a permanent server-side automatic-order helper with ten-point spacing.
-- Made the save API ignore client order values, preserve an existing method's order, and calculate the next order from persisted managed guides for new methods.
-- Updated the category persistence audit so canonical category validation remains protected with server-owned ordering.
-- Added a regression audit covering hidden UI, automatic append behavior, existing-order preservation, server ownership, and homepage sorting.
+- Active-task lock established. No production code changed yet.
 
 ## Validation
-- JavaScript syntax: passed.
-- Existing repository audits: passed.
-- Category persistence audit: passed.
-- Automatic method order audit: passed.
-- Astro check: passed.
-- Production build: passed.
-- Vercel preview for PR #24: passed.
-- PR #24 merged with production implementation commit `ae86e0ad216936d495dec7c85b8030a7348b012a`.
-- Vercel production deployment for the merged implementation: passed.
+- Repository audits: pending.
+- Targeted regression audits: pending findings.
+- JavaScript/static validation: pending.
+- Astro check: pending.
+- Production build: pending.
+- Vercel preview: pending.
+- Vercel production: pending.
+- Live public verification: pending.
 
 ## Cleanup
-- No alternate order registry, client-only workaround, manual-refresh requirement, or compatibility patch was added.
-- The existing public sorting path and guide frontmatter remain the single placement mechanism.
-- Existing method order values remain unchanged when methods are edited.
+- Pending implementation and conflict inspection.
 
 ## Blockers
-- None.
+- Password-gated interactions cannot be exercised from unauthenticated public tooling; their real code paths and API contracts will be validated directly, with live public verification covering all accessible surfaces.
 
 ## Backlog
-- Empty.
+- Empty. Do not switch tasks until the audit, verified fixes, cleanup, preview, merge, production deployment, and final live checks are complete.
