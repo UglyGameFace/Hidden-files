@@ -1,14 +1,17 @@
 (() => {
   const CACHE_KEY = 'lobby-live-status-v2';
   const RELOAD_KEY = 'lobby-pending-guide-reloads-v1';
+  const BUILD_RELOAD_KEY = 'lobby-pending-build-reloads-v1';
   const FRESH_FOR_MS = 15_000;
-  const REFRESH_EVERY_MS = 60_000;
+  const REFRESH_EVERY_MS = 20_000;
   const PENDING_RELOAD_DELAY_MS = 20_000;
+  const BUILD_RELOAD_DELAY_MS = 5_000;
   const MAX_PENDING_RELOADS = 6;
   let memory = readBootstrap();
   let inflight = null;
   let timer = null;
   let pendingReloadTimer = null;
+  let buildReloadTimer = null;
 
   function readBootstrap() {
     const node = document.getElementById('lobby-status-bootstrap');
@@ -57,6 +60,24 @@
     }
   }
 
+  function currentBuildVersion() {
+    return String(document.documentElement.dataset.buildVersion || '').trim();
+  }
+
+  function ownerEditorOpen() {
+    return window.location.pathname.startsWith('/control-center')
+      || window.location.pathname.startsWith('/deal-desk')
+      || window.location.pathname.startsWith('/post-method');
+  }
+
+  function safeToReload() {
+    if (ownerEditorOpen()) return false;
+    const focusedField = document.activeElement instanceof HTMLInputElement
+      || document.activeElement instanceof HTMLTextAreaElement
+      || document.activeElement instanceof HTMLSelectElement;
+    return document.visibilityState === 'visible' && window.scrollY < 160 && !focusedField;
+  }
+
   function effectiveStatus(entry) {
     if (!entry) return 'active';
     if (entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now()) return 'expired';
@@ -81,6 +102,42 @@
       .sort();
   }
 
+  function maybeReloadForNewBuild(payload) {
+    if (ownerEditorOpen()) return;
+    const current = currentBuildVersion();
+    const next = String(payload.buildVersion || '').trim();
+    const changed = Boolean(
+      current
+      && next
+      && current !== 'local'
+      && next !== 'local'
+      && current !== next,
+    );
+
+    if (!changed) {
+      safeRemove(BUILD_RELOAD_KEY);
+      if (buildReloadTimer) window.clearTimeout(buildReloadTimer);
+      buildReloadTimer = null;
+      return;
+    }
+
+    const previous = safeRead(BUILD_RELOAD_KEY);
+    const attempts = previous?.signature === next ? Number(previous.attempts || 0) : 0;
+    if (attempts >= MAX_PENDING_RELOADS || buildReloadTimer) return;
+
+    safeWrite(BUILD_RELOAD_KEY, { signature: next, attempts, scheduledAt: Date.now() });
+    buildReloadTimer = window.setTimeout(() => {
+      buildReloadTimer = null;
+      if (!safeToReload()) {
+        maybeReloadForNewBuild(payload);
+        return;
+      }
+
+      safeWrite(BUILD_RELOAD_KEY, { signature: next, attempts: attempts + 1, reloadedAt: Date.now() });
+      window.location.reload();
+    }, BUILD_RELOAD_DELAY_MS);
+  }
+
   function maybeReloadForNewGuides(payload) {
     const pending = pendingGuideIds(payload);
     if (!pending.length) {
@@ -98,10 +155,7 @@
     safeWrite(RELOAD_KEY, { signature, attempts, scheduledAt: Date.now() });
     pendingReloadTimer = window.setTimeout(() => {
       pendingReloadTimer = null;
-      const focusedField = document.activeElement instanceof HTMLInputElement
-        || document.activeElement instanceof HTMLTextAreaElement;
-      const safeToReload = document.visibilityState === 'visible' && window.scrollY < 160 && !focusedField;
-      if (!safeToReload) {
+      if (!safeToReload()) {
         maybeReloadForNewGuides(payload);
         return;
       }
@@ -116,13 +170,14 @@
       payload: {
         statuses: payload.statuses || {},
         checkedAt: payload.checkedAt || new Date().toISOString(),
-        buildVersion: payload.buildVersion || document.documentElement.dataset.buildVersion || '',
+        buildVersion: payload.buildVersion || currentBuildVersion(),
       },
       savedAt: Date.now(),
       source,
     };
     memory = entry;
     safeWrite(CACHE_KEY, entry);
+    maybeReloadForNewBuild(entry.payload);
     maybeReloadForNewGuides(entry.payload);
     window.dispatchEvent(new CustomEvent('lobby-status-change', { detail: entry.payload }));
     return entry.payload;
@@ -143,7 +198,7 @@
     return publish({
       statuses: payload.statuses || {},
       checkedAt: payload.checkedAt || new Date().toISOString(),
-      buildVersion: document.documentElement.dataset.buildVersion || '',
+      buildVersion: payload.buildVersion || currentBuildVersion(),
     }, 'network');
   }
 
@@ -173,6 +228,7 @@
     const stored = safeRead(CACHE_KEY);
     if (!force && isFresh(stored)) {
       memory = stored;
+      maybeReloadForNewBuild(stored.payload);
       maybeReloadForNewGuides(stored.payload);
       return stored.payload;
     }
@@ -180,6 +236,7 @@
     const fallback = stored?.payload ? stored : memory?.payload ? memory : null;
     if (!force && fallback?.payload) {
       memory = fallback;
+      maybeReloadForNewBuild(fallback.payload);
       maybeReloadForNewGuides(fallback.payload);
       refresh().catch(() => {});
       return fallback.payload;
@@ -195,11 +252,11 @@
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !isFresh(memory)) refresh().catch(() => {});
+    if (document.visibilityState === 'visible') refresh().catch(() => {});
   });
 
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) refresh().catch(() => {});
+  window.addEventListener('pageshow', () => {
+    refresh().catch(() => {});
   });
 
   window.LobbyStatus = {
@@ -209,5 +266,7 @@
     effectiveStatus,
   };
 
+  startTimer();
+  refresh().catch(() => {});
   window.dispatchEvent(new Event('lobby-status-ready'));
 })();

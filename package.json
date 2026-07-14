@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "audit": "node tools/audit-site.mjs && node tools/audit-post-method.mjs && node tools/audit-control-center-tabs.mjs && node tools/audit-layout-consistency.mjs && node tools/audit-category-persistence.mjs && node tools/audit-category-icons.mjs",
+    "audit": "node tools/audit-site.mjs && node tools/audit-post-method.mjs && node tools/audit-control-center-tabs.mjs && node tools/audit-layout-consistency.mjs && node tools/audit-category-persistence.mjs && node tools/audit-category-icons.mjs && node tools/audit-site-wide-propagation.mjs",
     "check": "npm run audit && astro check",
     "build": "npm run audit && astro check && astro build",
     "preview": "astro preview"

@@ -1,51 +1,53 @@
 # Active Task
 
 ## Task
-Expand the category icon system so the Categories panel and New Method creator offer a useful site-matched icon library plus safe custom SVG upload, while every public surface keeps icons flush and consistently sized.
+Make every category, method, and site-settings publish propagate through the entire owner application and every public surface without requiring manual refreshes or repeated back-and-forth.
 
 ## Status
-Implemented, merged, and deployed to production. Live owner interaction review remains open.
+Implementation is complete on `agent/site-wide-update-propagation`. Preview and production validation are pending.
 
 ## Scope
-- Replace the six-option category icon list with one shared outline icon registry suited to deals, food, gaming, cashback, delivery, retail, and web methods.
-- Offer the same choices in Categories and the inline New Method category creator.
-- Allow a custom path-based SVG icon without storing arbitrary executable SVG markup.
-- Center and scale preset and custom icons into the same fixed square slot on owner previews, the homepage, cards, desktop navigation, mobile navigation, and guide pages.
-- Preserve all existing categories, methods, authentication, layout, accents, visibility, and publishing behavior.
+- Keep `src/data/site-settings.json` as the canonical persisted category registry.
+- Synchronize category drafts between Categories and New Method in both directions.
+- Synchronize categories published by an atomic method save back into the Categories panel without reloading the page.
+- Preserve unrelated unpublished Control Center edits when a method save changes the published settings registry.
+- Make already-open public pages detect any completed Vercel build and reload safely so navigation, category strips, filters, cards, guide pages, related guides, copy, and styling all move to the same build.
+- Preserve authentication, existing methods, content, layout, status controls, category metadata, and atomic saves.
 
 ## Root Cause
-- Category creation exposed only six hard-coded choices.
-- The owner interface represented them with rough Unicode glyphs, while the public site used separate SVG path definitions.
-- Icon choices therefore looked inconsistent and there was no supported custom icon format or upload path.
+- The owner application still had two runtime copies of the category registry with one-way synchronization.
+- Publishing Categories refreshed New Method, but saving a category through New Method did not update the Categories panel state or its settings SHA.
+- Categories created in one owner panel were not available as shared drafts in the other panel before publishing.
+- Public freshness logic only detected newly registered guide IDs. A category-only publish, navigation change, homepage change, icon change, or other settings deployment left already-open public pages on old static HTML.
+- The production registry currently contains only the three starter categories, confirming the category shown locally in New Method had not reached the canonical persisted registry.
 
 ## Changes
-- Added one shared registry with more than twenty site-matched outline icons.
-- Made both owner category creators consume that registry instead of separate option lists.
-- Added sanitized custom SVG upload that stores only a validated viewBox and path data.
-- Added fixed-size, proportion-preserving SVG rendering across every category surface.
-- Added regression audits for registry size, persistence, unsafe SVG rejection, upload hooks, shared rendering, and fixed dimensions.
+- Added native bidirectional category draft events owned by the two editor runtimes.
+- Added published-settings consumption and safe draft rebasing in the Categories runtime.
+- Made atomic method saves publish the returned full settings object and updated settings SHA through the shared runtime.
+- Removed the page-level refresh-click synchronization bridge.
+- Added deployed build identity to the public status API.
+- Extended the public freshness runtime to detect every new Vercel build and safely reload open public pages while excluding owner editors.
+- Added a site-wide propagation regression audit and updated category persistence coverage.
 
 ## Validation
-- JavaScript syntax: passed.
-- Existing repository audits: passed.
-- Category persistence audit: passed.
-- Category icon audit: passed.
-- Astro check: passed.
-- Production build: passed.
-- Vercel preview: passed.
-- Pull request: `#22` merged.
-- Production implementation commit: `38fa00c2ae9515cbe45ea8d68fb7f8aaf42a1855`.
-- Vercel production deployment: passed.
-- Live owner interaction review: awaiting owner confirmation.
+- JavaScript syntax: pending Vercel preview.
+- Existing repository audits: pending Vercel preview.
+- Category persistence audit: pending Vercel preview.
+- Category icon audit: pending Vercel preview.
+- Site-wide propagation audit: pending Vercel preview.
+- Astro check: pending Vercel preview.
+- Production build: pending Vercel preview.
+- Vercel preview: pending.
+- Vercel production: pending merge.
 
 ## Cleanup
-- No Unicode fallback registry remains in the active owner runtimes.
-- No second category registry, raw SVG storage, external icon service, or local-only upload state was added.
-- Existing category values remain valid and unchanged.
-- Temporary task marker was removed before merge.
+- The old page-shell refresh bridge was removed.
+- No second persisted registry, fallback category list, browser-cache workaround, raw SVG path, or weakened password gate was added.
+- Owner pages are excluded from automatic deployment reloads so unsaved forms are never interrupted.
 
 ## Blockers
-- None in code or deployment.
+- None known in code. Deployment validation remains.
 
 ## Backlog
-- Empty. Stay on this task until the owner confirms the live icon picker and custom upload interaction.
+- Empty. Do not move to another task until preview, merge, production deployment, and live category propagation verification pass.
