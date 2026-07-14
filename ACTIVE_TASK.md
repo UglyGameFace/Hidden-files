@@ -4,7 +4,7 @@
 Run a full production-readiness audit of The 420 Lobby website, fix every verified blocker found within that audit, remove conflicting or obsolete implementations, and deploy only after preview and production validation pass.
 
 ## Status
-Verified production-readiness blockers have been implemented on `audit/production-readiness`. Repository audits, Astro validation, Vercel preview, merge, production deployment, and final live checks remain.
+Implementation, cleanup, repository validation, and Vercel preview have passed on `audit/production-readiness`. PR #25 is ready to merge; production deployment and final live checks remain.
 
 ## Scope
 - Trace the real public and password-gated execution paths instead of adding surface-level patches.
@@ -23,6 +23,7 @@ Verified production-readiness blockers have been implemented on `audit/productio
 - Public live-status refreshes kept static fallbacks but could remain pending indefinitely on a stalled network.
 - Production response headers did not define a CSP, frame protection, transport security, browser permissions policy, or private-route indexing header.
 - Canonical URLs could fall back to a placeholder domain, and the site had no generated sitemap or public health endpoint.
+- Unused raw copies of both owner runtimes remained publicly served after Astro/Vite became their canonical compiler and loader.
 
 ## Changes
 - Added bounded GitHub request timeouts and clearer upstream conflict/error mapping.
@@ -32,26 +33,28 @@ Verified production-readiness blockers have been implemented on `audit/productio
 - Added a shared focus-scope utility for the mobile drawer and owner dialogs, including Tab containment, Escape, and return focus.
 - Added a timeout to public status refreshes while retaining cached/static outage behavior.
 - Added security and privacy headers, owner-route noindex response headers, a real production canonical fallback, robots rules, a generated sitemap, and a public health endpoint.
+- Removed the obsolete public owner runtimes and their stale Vercel cache rules.
 - Added a production-readiness regression audit to every check and production build.
 
 ## Validation
-- Repository audits: pending Vercel preview.
-- Production-readiness regression audit: pending Vercel preview.
-- JavaScript/static validation: pending Vercel preview.
-- Astro check: pending Vercel preview.
-- Production build: pending Vercel preview.
-- Vercel preview: pending.
+- Existing repository audits: passed.
+- Production-readiness regression audit: passed.
+- JavaScript/static validation: passed.
+- Astro check: passed.
+- Production build: passed.
+- Vercel preview for PR #25: passed.
+- PR mergeability and conflict inspection: passed; branch is current with `main` and has no review conflicts.
 - Vercel production: pending merge.
 - Live public verification: pending production.
 
 ## Cleanup
 - New deployment ownership is isolated in one compiled owner runtime and one dedicated status API; no duplicate settings/category registry or alternate publishing path was added.
+- Obsolete raw `public/deal-desk.js` and `public/control-center.js` copies and their headers were removed after verifying the Astro page loads only compiled source runtimes.
 - Security, accessibility, and deployment styles use dedicated selectors without `!important` or redesigning existing surfaces.
 - Existing guide content, category data, status registry, authentication secret, and public layout remain unchanged.
-- Final stale-code and conflict inspection remains before merge.
 
 ## Blockers
 - Password-gated interactions cannot be exercised from unauthenticated public tooling; their real code paths and API contracts are covered directly, while live public verification will cover all accessible production surfaces.
 
 ## Backlog
-- Empty. Do not switch tasks until the audit, verified fixes, cleanup, preview, merge, production deployment, and final live checks are complete.
+- Empty. Do not switch tasks until PR #25 is merged, production deployment passes, and final live checks are complete.
