@@ -69,7 +69,7 @@ for (const required of ['getLoginThrottle', 'registerLoginFailure', "'retry-afte
 }
 
 const statusApi = read('api/deal-desk-status.js');
-for (const required of ['requireManagedGuide', 'optionalIso', 'for (let attempt = 0; attempt < 2', "error.status !== 409"]) {
+for (const required of ['requireManagedGuide', 'optionalIso', 'for (let attempt = 0; attempt < 2', 'error.status !== 409']) {
   assert.ok(statusApi.includes(required), `Live-status write protection is missing: ${required}`);
 }
 
@@ -87,7 +87,7 @@ for (const required of [
   'lobby-settings-loaded',
   '/api/deployment-status?commit=',
   'MAX_MONITOR_MS',
-  'data-deployment-pending',
+  'dataset.deploymentPending',
   'data-cc-publish',
   'data-save-method',
   'MutationObserver',
@@ -115,7 +115,7 @@ assert.ok(controlPage.includes("../scripts/owner-readiness.js"), 'The owner read
 assert.ok(controlPage.includes('production-readiness.css'), 'The deployment state stylesheet is not loaded.');
 
 const focusScope = read('src/lib/focus-scope.js');
-for (const required of ['Shift', "event.key !== 'Tab'", 'returnFocus', 'onEscape']) {
+for (const required of ['event.shiftKey', "event.key !== 'Tab'", 'returnFocus', 'onEscape']) {
   assert.ok(focusScope.includes(required), `Shared focus scope is missing: ${required}`);
 }
 const mobile = read('src/components/MobileHeader.astro');
@@ -124,7 +124,7 @@ for (const required of ['aria-controls="mobile-navigation-drawer"', 'role="dialo
 }
 
 const statusRuntime = read('public/site-status.js');
-for (const required of ['REQUEST_TIMEOUT_MS', 'AbortController', 'controller.abort()', "signal: controller.signal"]) {
+for (const required of ['REQUEST_TIMEOUT_MS', 'AbortController', 'controller.abort()', 'signal: controller.signal']) {
   assert.ok(statusRuntime.includes(required), `Public status outage handling is missing: ${required}`);
 }
 
