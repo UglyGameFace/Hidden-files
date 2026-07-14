@@ -1,60 +1,50 @@
 # Active Task
 
 ## Task
-Make the public website and private Control Center use one consistent layout system across phones, tablets, laptops, and desktops while preserving the terminal style and all existing method content.
+Fix custom-category persistence from the password-gated Categories panel through publishing, reload, New Method, method saving, and every public category surface.
 
 ## Status
-Implemented and deployed. Live visual verification remains open.
+Implementation complete on `agent/fix-custom-category-persistence`. Preview and production validation are pending.
 
 ## Scope
-- Align gutters, surface radii, control heights, panel padding, and section spacing across the public homepage, guide pages, navigation, footer, and owner application.
-- Remove repeated owner headings and redundant unlocked hero content.
-- Keep command actions, section cards, forms, categories, and appearance choices balanced at tablet and mobile widths.
-- Preserve all method wording, category data, authentication, live status, publishing, terminal styling, and public content.
+- Preserve one canonical category registry in `src/data/site-settings.json`.
+- Preserve all existing methods, category metadata, visibility behavior, authentication, and public layout.
+- Make a published custom category immediately available to New Method without requiring a manual browser refresh.
+- Validate sanitizer round trips, method validation, Astro content validation, atomic saves, and public registry consumers.
 
 ## Findings
-- The unlocked Control Center displayed a marketing hero above its real command header.
-- Command links and buttons followed different flex sizing, leaving Lock alone on a full-width row.
-- Section navigation geometry was owned by both `control-center.css` and `navigation-buttons.css`.
-- Tablet layouts showed eight owner sections as four tall two-column rows.
-- Methods used a different outer surface than the other seven sections.
-- Panel kickers repeated the selected section name already displayed in the command bar.
-- Appearance density controls produced an orphaned final card.
-- Public sections used several different horizontal gutters, control radii, and card radii.
-- Select controls did not share the same styling as text fields.
+- The server sanitizer already preserved valid unknown category keys and all supported metadata.
+- The settings POST endpoint already wrote the complete sanitized registry to `src/data/site-settings.json`.
+- The settings GET endpoint already returned the persisted registry.
+- The method editor copied categories into its private `state.categories` only during its initial `loadGuides()` call.
+- Publishing from the Categories panel updated `window.LobbySettingsRuntime`, but the method editor did not consume the resulting `lobby-settings-loaded` event.
+- New Method therefore continued rendering the stale boot-time category copy even after a successful category publish.
 
-## Fix
-- Added `src/styles/layout-system.css` as the final canonical layout owner.
-- Added shared gutter, radius, control-height, and surface-padding tokens.
-- Hidden the marketing hero only after the owner application is unlocked.
-- Added a two-row command header with equal action cells.
-- Added 8/4/2/1 section grids for desktop/tablet/mobile/tiny-phone widths.
-- Gave Methods and settings panels the same surface geometry.
-- Preserved two-column forms on tablets and one column on phones.
-- Balanced color choices and kept all three density choices in one row on tablets.
-- Replaced repeated panel kickers with descriptive hierarchy labels.
-- Removed Control Center geometry from navigation-only CSS.
-- Added a build audit that rejects competing layout ownership.
+## Changes
+- Added a page-level synchronization bridge that detects a changed published category registry and invokes the existing canonical method/settings reload path.
+- Kept the API-backed settings registry as the only source of truth; no fallback category list or second registry was added.
+- Added `tools/audit-category-persistence.mjs` with the `gaming-deals` regression case.
+- Added the category persistence audit to every repository audit/check/build.
 
 ## Validation
-- Layout consistency audit: passed.
-- Existing repository audit: passed.
-- Password-gated posting audit: passed.
-- Control Center section audit: passed.
-- Astro type check: passed.
-- Astro production build: passed.
-- Vercel preview deployment: passed.
-- Vercel production deployment: passed.
-- Production commit: `1f7e7ce720ab559e640beaad97cd2edab9baf748`.
-- Tablet screenshot comparison and live interaction verification: awaiting owner review.
+- Custom sanitizer preservation: implemented; pending Vercel execution.
+- Serialize/save/reload round trip: implemented; pending Vercel execution.
+- New Method picker synchronization: implemented; pending Vercel execution.
+- Method validation and atomic category/method/status save: covered; pending Vercel execution.
+- Temporary Astro guide using `gaming-deals`: covered; pending Vercel execution.
+- Existing repository audits: pending Vercel preview.
+- Astro check: pending Vercel preview.
+- Production build: pending Vercel preview.
+- Vercel preview: pending.
+- Vercel production: pending merge.
 
 ## Cleanup
-- No method body, title, category, status, authentication, or publishing behavior changed.
-- No `!important`, monkey patch, duplicate tab runtime, or additional raw browser script added.
-- Terminal styling remains intact.
+- No submitted method title, description, body, or existing category data changed.
+- No authentication, password, layout, or unrelated feature changed.
+- No monkey patch, duplicate registry, fallback array, or local-only persistence path added.
 
 ## Blockers
-- None in code.
+- None in code. Deployment checks remain.
 
 ## Backlog
-- Empty. Stay on this task until live visual verification is accepted.
+- Empty. Do not move to another task until preview, merge, production deployment, and live category workflow verification pass.
