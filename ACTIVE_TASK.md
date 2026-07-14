@@ -1,54 +1,45 @@
 # Active Task
 
 ## Task
-Make every category, method, and site-settings publish propagate through the entire owner application and every public surface without requiring manual refreshes or repeated back-and-forth.
+Remove manual sort-order management from normal method posting and assign guide placement automatically on the server.
 
 ## Status
-Implemented, merged through PR #23, and deployed to production.
+Implementation is complete on `agent/automatic-method-order`. Preview and production validation are pending.
 
 ## Scope
-- Keep `src/data/site-settings.json` as the canonical persisted category registry.
-- Synchronize category drafts between Categories and New Method in both directions.
-- Synchronize categories published by an atomic method save back into the Categories panel without reloading the page.
-- Preserve unrelated unpublished Control Center edits when a method save changes the published settings registry.
-- Make already-open public pages detect any completed Vercel build and reload safely so navigation, category strips, filters, cards, guide pages, related guides, copy, and styling all move to the same build.
-- Preserve authentication, existing methods, content, layout, status controls, category metadata, and atomic saves.
+- Remove the internal Sort order number from the New Method and Edit Method form.
+- Automatically place each newly created managed method after the existing managed methods.
+- Preserve the current placement when an existing method is edited.
+- Keep featured methods ahead of non-featured methods as the homepage already does.
+- Keep the internal order in guide frontmatter so public sorting remains deterministic.
+- Preserve all existing methods, content, categories, authentication, publishing, status controls, and layout.
 
 ## Root Cause
-- The owner application still had two runtime copies of the category registry with one-way synchronization.
-- Publishing Categories refreshed New Method, but saving a category through New Method did not update the Categories panel state or its settings SHA.
-- Categories created in one owner panel were not available as shared drafts in the other panel before publishing.
-- Public freshness logic only detected newly registered guide IDs. A category-only publish, navigation change, homepage change, icon change, or other settings deployment left already-open public pages on old static HTML.
-- The production registry contained only the three starter categories, confirming the category shown locally in New Method had not reached the canonical persisted registry.
+- The method editor exposed the internal `order` frontmatter value as a normal owner input.
+- Every blank method was initialized with the arbitrary value `20`, even though the owner did not need or intend to manage numeric ordering.
+- The save API trusted the form value instead of owning placement itself.
 
 ## Changes
-- Added native bidirectional category draft events owned by the two editor runtimes.
-- Added published-settings consumption and safe draft rebasing in the Categories runtime.
-- Made atomic method saves publish the returned full settings object and updated settings SHA through the shared runtime.
-- Removed the page-level refresh-click synchronization bridge.
-- Added deployed build identity to the public status API.
-- Extended the public freshness runtime to detect every new Vercel build and safely reload open public pages while excluding owner editors.
-- Added a site-wide propagation regression audit and updated category persistence coverage.
+- Removed the visible Sort order field from the normal method form.
+- Added a permanent server-side automatic-order helper with ten-point spacing.
+- Made the save API ignore client order values, preserve an existing method's order, and calculate the next order from persisted managed guides for new methods.
+- Added a regression audit covering hidden UI, automatic append behavior, existing-order preservation, server ownership, and homepage sorting.
 
 ## Validation
-- JavaScript syntax: passed.
-- Existing repository audits: passed.
-- Category persistence audit: passed.
-- Category icon audit: passed.
-- Site-wide propagation audit: passed.
-- Astro check: passed.
-- Production build: passed.
-- Vercel preview for PR #23: passed.
-- PR #23 merged with production implementation commit `93d603398566ac6d541509a51efa28cd3d450789`.
-- Vercel production deployment for the merged implementation: passed.
+- JavaScript syntax: pending Vercel preview.
+- Existing repository audits: pending Vercel preview.
+- Automatic method order audit: pending Vercel preview.
+- Astro check: pending Vercel preview.
+- Production build: pending Vercel preview.
+- Vercel preview: pending.
+- Vercel production: pending merge.
 
 ## Cleanup
-- The old page-shell refresh bridge was removed.
-- No second persisted registry, fallback category list, browser-cache workaround, raw SVG path, or weakened password gate was added.
-- Owner pages are excluded from automatic deployment reloads so unsaved forms are never interrupted.
+- No alternate order registry, client-only workaround, manual-refresh requirement, or compatibility patch was added.
+- The existing public sorting path and guide frontmatter remain the single placement mechanism.
 
 ## Blockers
-- None in code or deployment.
+- None known in code. Deployment validation remains.
 
 ## Backlog
-- Empty. Live owner interaction confirmation remains, but implementation and deployment gates are complete.
+- Empty. Do not move to another task until preview, merge, and production deployment pass.
