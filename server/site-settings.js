@@ -1,8 +1,13 @@
 import { HttpError, readRepoFile, writeRepoFile } from './deal-desk.js';
+import {
+  CATEGORY_ICON_KEYS,
+  DEFAULT_CATEGORY_ICON,
+  sanitizeCustomIconDefinition,
+} from '../src/lib/category-icons.js';
 
 export const SITE_SETTINGS_PATH = 'src/data/site-settings.json';
 export const BUILTIN_CATEGORY_KEYS = ['cashback-loops', 'food-hacks', 'retail-deals'];
-export const CATEGORY_ICON_PRESETS = ['loop', 'food', 'tag', 'spark', 'book', 'shield'];
+export const CATEGORY_ICON_PRESETS = [...CATEGORY_ICON_KEYS, 'custom'];
 export const CATEGORY_ACCENT_PRESETS = ['lime', 'cyan', 'amber', 'violet'];
 
 const CATEGORY_KEY = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
@@ -66,22 +71,36 @@ function customCategoryFallback(key, order = 99) {
     description: `Methods organized under ${label}.`,
     visible: true,
     order,
-    icon: 'tag',
+    icon: DEFAULT_CATEGORY_ICON,
     accent: 'lime',
   };
 }
 
 export function sanitizeCategoryDefinition(input, fallback, key = '') {
   const safeFallback = fallback || customCategoryFallback(key || 'custom-category');
-  return {
+  const fallbackIcon = ICON_PRESETS.has(safeFallback.icon) ? safeFallback.icon : DEFAULT_CATEGORY_ICON;
+  const requestedIcon = ICON_PRESETS.has(input?.icon) ? input.icon : fallbackIcon;
+  const fallbackCustomIcon = fallbackIcon === 'custom'
+    ? sanitizeCustomIconDefinition(safeFallback.customIcon)
+    : null;
+  const requestedCustomIcon = requestedIcon === 'custom'
+    ? sanitizeCustomIconDefinition(input?.customIcon)
+    : null;
+  const customIcon = requestedCustomIcon || fallbackCustomIcon;
+  const icon = requestedIcon === 'custom' && !customIcon ? DEFAULT_CATEGORY_ICON : requestedIcon;
+
+  const category = {
     label: text(input?.label, safeFallback.label, 48, 2),
     shortLabel: text(input?.shortLabel, safeFallback.shortLabel, 20, 1),
     description: text(input?.description, safeFallback.description, 180, 4),
     visible: bool(input?.visible, safeFallback.visible),
     order: integer(input?.order, safeFallback.order, 1, 99),
-    icon: ICON_PRESETS.has(input?.icon) ? input.icon : safeFallback.icon,
+    icon,
     accent: ACCENT_PRESETS.has(input?.accent) ? input.accent : safeFallback.accent,
   };
+
+  if (icon === 'custom' && customIcon) category.customIcon = customIcon;
+  return category;
 }
 
 export const DEFAULT_SITE_SETTINGS = {
