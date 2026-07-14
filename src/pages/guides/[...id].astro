@@ -39,7 +39,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat('en-US', { month: 'sh
   <article class="guide-page" data-guide-id={hack.id}>
     <header class={`guide-hero accent-${category.accent}`}>
       <a href={`/?category=${hack.data.category}#library`} class="guide-back"><span>←</span> Back to {category.label}</a>
-      <div class="guide-category"><Icon name={category.icon} /> {category.label}</div>
+      <div class="guide-category"><Icon name={category.icon} customIcon={category.customIcon} /> {category.label}</div>
       <h1>{hack.data.title}</h1>
       <p>{hack.data.description}</p>
       <div class="guide-meta">
