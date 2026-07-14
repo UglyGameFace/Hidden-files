@@ -4,6 +4,15 @@ const COOKIE_NAME = 'lobby_deal_desk';
 const STATUS_PATH = 'src/data/deal-status.json';
 const GUIDE_DIR = 'src/content/hacks';
 const CATEGORY_KEY = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/;
+const COMMIT_SHA = /^[a-f0-9]{7,40}$/i;
+const GITHUB_TIMEOUT_MS = 15_000;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 5;
+const LOGIN_ATTEMPTS = globalThis.__lobbyLoginAttempts instanceof Map
+  ? globalThis.__lobbyLoginAttempts
+  : new Map();
+globalThis.__lobbyLoginAttempts = LOGIN_ATTEMPTS;
 
 export class HttpError extends Error {
   constructor(status, message, details) {
@@ -87,6 +96,61 @@ function readCookie(request, name) {
   return '';
 }
 
+function loginClientKey(request) {
+  const forwarded = request.headers.get('x-vercel-forwarded-for')
+    || request.headers.get('x-forwarded-for')
+    || request.headers.get('x-real-ip')
+    || 'unknown';
+  return String(forwarded).split(',')[0].trim().slice(0, 128) || 'unknown';
+}
+
+function cleanupLoginAttempts(now = Date.now()) {
+  if (LOGIN_ATTEMPTS.size < 1000) return;
+  for (const [key, entry] of LOGIN_ATTEMPTS) {
+    const expiresAt = Math.max(Number(entry.windowStartedAt || 0) + LOGIN_WINDOW_MS, Number(entry.blockedUntil || 0));
+    if (expiresAt <= now) LOGIN_ATTEMPTS.delete(key);
+  }
+}
+
+export function getLoginThrottle(request) {
+  const now = Date.now();
+  cleanupLoginAttempts(now);
+  const key = loginClientKey(request);
+  const entry = LOGIN_ATTEMPTS.get(key);
+  if (!entry || Number(entry.blockedUntil || 0) <= now) {
+    return { key, blocked: false, retryAfter: 0 };
+  }
+  return {
+    key,
+    blocked: true,
+    retryAfter: Math.max(1, Math.ceil((entry.blockedUntil - now) / 1000)),
+  };
+}
+
+export function registerLoginFailure(request) {
+  const now = Date.now();
+  const key = loginClientKey(request);
+  const previous = LOGIN_ATTEMPTS.get(key);
+  const withinWindow = previous && now - Number(previous.windowStartedAt || 0) < LOGIN_WINDOW_MS;
+  const failures = withinWindow ? Number(previous.failures || 0) + 1 : 1;
+  const blockedUntil = failures >= LOGIN_MAX_FAILURES ? now + LOGIN_BLOCK_MS : 0;
+  const entry = {
+    failures,
+    windowStartedAt: withinWindow ? previous.windowStartedAt : now,
+    blockedUntil,
+  };
+  LOGIN_ATTEMPTS.set(key, entry);
+  return {
+    blocked: blockedUntil > now,
+    retryAfter: blockedUntil > now ? Math.ceil((blockedUntil - now) / 1000) : 0,
+    remaining: Math.max(0, LOGIN_MAX_FAILURES - failures),
+  };
+}
+
+export function clearLoginFailures(request) {
+  LOGIN_ATTEMPTS.delete(loginClientKey(request));
+}
+
 export function isAuthenticated(request) {
   try {
     const token = readCookie(request, COOKIE_NAME);
@@ -126,18 +190,40 @@ async function github(path, options = {}, needsToken = true) {
   };
   if (cfg.token) headers.authorization = `Bearer ${cfg.token}`;
 
-  const response = await fetch(`https://api.github.com${path}`, {
-    ...options,
-    headers,
-    cache: 'no-store',
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GITHUB_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`https://api.github.com${path}`, {
+      ...options,
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted || error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+      throw new HttpError(504, 'GitHub did not respond in time. Try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   const text = await response.text();
   let payload = null;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
   if (!response.ok) {
     const message = payload?.message || `GitHub request failed (${response.status}).`;
-    throw new HttpError(response.status === 404 ? 404 : 502, message, payload);
+    const status = response.status === 404
+      ? 404
+      : response.status === 409
+        ? 409
+        : response.status === 422
+          ? 422
+          : response.status === 429
+            ? 503
+            : 502;
+    throw new HttpError(status, message, payload);
   }
   return payload;
 }
@@ -153,6 +239,25 @@ function repoPath(path) {
 
 function branchPath(branch) {
   return branch.split('/').map(encodeURIComponent).join('/');
+}
+
+export async function readCommitDeploymentStatus(commitSha) {
+  const commit = String(commitSha || '').trim();
+  if (!COMMIT_SHA.test(commit)) throw new HttpError(422, 'A valid deployment commit is required.');
+  const payload = await github(`${repoRoot()}/commits/${encodeURIComponent(commit)}/status`);
+  const statuses = Array.isArray(payload?.statuses) ? payload.statuses : [];
+  const vercel = statuses.find((status) => String(status?.context || '').toLowerCase().includes('vercel')) || null;
+  const state = String(vercel?.state || payload?.state || 'pending').toLowerCase();
+  const safeState = new Set(['pending', 'success', 'failure', 'error']).has(state) ? state : 'pending';
+  const targetUrl = /^https:\/\//i.test(String(vercel?.target_url || '')) ? String(vercel.target_url) : null;
+  return {
+    commit: String(payload?.sha || commit),
+    state: safeState,
+    completed: safeState !== 'pending',
+    description: String(vercel?.description || (safeState === 'pending' ? 'Waiting for Vercel.' : `Vercel reported ${safeState}.`)).slice(0, 180),
+    targetUrl,
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 export async function readRepoFile(path, { allowMissing = false, publicRead = false } = {}) {
