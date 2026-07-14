@@ -63,6 +63,15 @@
       "order": 3,
       "icon": "tag",
       "accent": "cyan"
+    },
+    "fast-cash": {
+      "label": "Fast Cash",
+      "shortLabel": "Fast💲",
+      "description": "Little to no investment needed!",
+      "visible": true,
+      "order": 4,
+      "icon": "dollar",
+      "accent": "lime"
     }
   },
   "discord": {
