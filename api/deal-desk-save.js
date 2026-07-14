@@ -4,8 +4,10 @@ import {
   handleError,
   HttpError,
   json,
+  listGuideFiles,
   methodNotAllowed,
   normalizeStatus,
+  parseGuideFile,
   readRepoFile,
   readStatusDocument,
   requireAuth,
@@ -14,6 +16,7 @@ import {
   validateGuide,
   writeRepoFiles,
 } from '../server/deal-desk.js';
+import { resolveAutomaticMethodOrder } from '../server/method-order.js';
 import {
   readSiteSettings,
   safeCategoryKey,
@@ -22,6 +25,24 @@ import {
   serializeSiteSettings,
   SITE_SETTINGS_PATH,
 } from '../server/site-settings.js';
+
+async function managedGuideOrders(excludeId) {
+  const files = await listGuideFiles();
+  const orders = await Promise.all(files.map(async (file) => {
+    const id = file.name.replace(/\.mdx?$/i, '');
+    if (!id || id === excludeId) return null;
+
+    try {
+      const raw = await readRepoFile(`src/content/hacks/${id}.md`, { allowMissing: true });
+      if (!raw.content.trim()) return null;
+      const guide = parseGuideFile(id, raw.content);
+      return guide.managed ? guide.order : null;
+    } catch {
+      return null;
+    }
+  }));
+  return orders.filter((order) => Number.isFinite(Number(order)));
+}
 
 export default {
   async fetch(request) {
@@ -51,8 +72,8 @@ export default {
         categoryCreated = true;
       }
 
-      const guide = validateGuide(body, Object.keys(siteSettings.categories));
-      const path = guidePath(guide.id);
+      const provisionalGuide = validateGuide({ ...body, order: 0 }, Object.keys(siteSettings.categories));
+      const path = guidePath(provisionalGuide.id);
       const [current, statusDocument] = await Promise.all([
         readRepoFile(path, { allowMissing: true }),
         readStatusDocument(),
@@ -61,6 +82,17 @@ export default {
       if (!current.sha && body.id) {
         throw new HttpError(409, 'That guide no longer exists. Refresh the Control Center and try again.');
       }
+
+      const existingOrder = current.content.trim()
+        ? parseGuideFile(provisionalGuide.id, current.content).order
+        : null;
+      const otherOrders = existingOrder === null
+        ? await managedGuideOrders(provisionalGuide.id)
+        : [];
+      const guide = {
+        ...provisionalGuide,
+        order: resolveAutomaticMethodOrder(existingOrder, otherOrders),
+      };
 
       const files = [{ path, content: composeGuideFile(guide) }];
       if (!statusDocument.entries[guide.id]) {
