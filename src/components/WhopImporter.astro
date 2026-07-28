@@ -1,0 +1,71 @@
+---
+import '../styles/whop-importer.css';
+---
+
+<section class="whop-importer" data-whop-importer>
+  <header class="whop-importer-head">
+    <div>
+      <span class="desk-kicker">Authorized guide transfer</span>
+      <h3>Import from Whop</h3>
+      <p>Connect through Whop, scan one course or forum experience, review every character, then add selected guides as hidden SniperPlug drafts.</p>
+    </div>
+    <div class="whop-connection" data-whop-connection data-state="checking" role="status" aria-live="polite">
+      <span aria-hidden="true"></span>
+      <div><strong data-whop-connection-title>Checking Whop</strong><small data-whop-connection-detail>No password is shared with SniperPlug.</small></div>
+    </div>
+  </header>
+
+  <div class="whop-connect-actions">
+    <a class="desk-button desk-button-primary" href="/api/whop-oauth-start" data-whop-connect>Continue with Whop</a>
+    <button type="button" data-whop-disconnect hidden>Disconnect Whop</button>
+  </div>
+
+  <form class="whop-scan-form" data-whop-scan-form hidden>
+    <label class="desk-field desk-field-wide">
+      <span>Whop experience ID or link</span>
+      <input name="source" placeholder="exp_xxxxxxxxxxxxxx or a link containing it" autocomplete="off" required />
+      <small>Open the Whop course or forum tile and use its <code>exp_...</code> experience ID.</small>
+    </label>
+    <fieldset>
+      <legend>Guide sources</legend>
+      <label><input type="checkbox" name="types" value="courses" checked /> Course lessons</label>
+      <label><input type="checkbox" name="types" value="forum" checked /> Forum guide posts</label>
+    </fieldset>
+    <button type="submit" class="desk-button desk-button-primary" data-whop-scan>Scan authorized guides</button>
+  </form>
+
+  <div class="whop-scan-status" data-whop-scan-status role="status" aria-live="polite" hidden></div>
+
+  <section class="whop-review" data-whop-review hidden>
+    <header>
+      <div><span class="desk-kicker">Draft review</span><h3 data-whop-experience-title>Whop guides</h3><p data-whop-scan-summary></p></div>
+      <div class="whop-selection-actions"><button type="button" data-whop-select-ready>Select ready</button><button type="button" data-whop-clear-selection>Clear</button></div>
+    </header>
+
+    <div class="whop-import-settings">
+      <label class="desk-field"><span>SniperPlug category</span><select data-whop-category required></select></label>
+      <label class="whop-rights-confirm"><input type="checkbox" data-whop-rights /> <span>I own these guides or have explicit permission to republish them on SniperPlug.</span></label>
+    </div>
+
+    <div class="whop-guide-list" data-whop-guide-list></div>
+    <div class="whop-empty" data-whop-empty hidden><strong>No importable guides found</strong><p>Check the experience ID, selected source types, and Whop permissions.</p></div>
+
+    <footer>
+      <p><strong data-whop-selected-count>0 selected</strong><span>Everything imports as a hidden draft. Nothing becomes public automatically.</span></p>
+      <button type="button" class="desk-button desk-button-primary" data-whop-import disabled>Import selected drafts</button>
+    </footer>
+  </section>
+
+  <div class="desk-modal-backdrop whop-preview-backdrop" data-whop-preview-backdrop aria-hidden="true" hidden>
+    <section class="whop-preview" role="dialog" aria-modal="true" aria-labelledby="whop-preview-title">
+      <header><div><span class="desk-kicker">Exact source preview</span><h2 id="whop-preview-title" data-whop-preview-title>Guide preview</h2></div><button type="button" data-whop-preview-close aria-label="Close preview">×</button></header>
+      <div class="whop-preview-meta" data-whop-preview-meta></div>
+      <pre data-whop-preview-body></pre>
+      <footer><button type="button" data-whop-preview-close>Close preview</button></footer>
+    </section>
+  </div>
+</section>
+
+<script>
+  import '../scripts/whop-importer.js';
+</script>
