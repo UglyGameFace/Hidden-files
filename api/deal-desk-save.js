@@ -16,6 +16,11 @@ import {
   validateGuide,
   writeRepoFiles,
 } from '../server/deal-desk.js';
+import {
+  assertGuideBodyRoundTrip,
+  GuideContentIntegrityError,
+  prepareGuideBody,
+} from '../server/guide-content-integrity.js';
 import { resolveAutomaticMethodOrder } from '../server/method-order.js';
 import {
   readSiteSettings,
@@ -52,6 +57,7 @@ export default {
       requireAuth(request);
 
       const body = await request.json().catch(() => ({}));
+      const preparedBody = prepareGuideBody(body.body, { source: 'Guide content' });
       const categoryKey = safeCategoryKey(body.category);
       const siteDocument = await readSiteSettings();
       let siteSettings = siteDocument.settings;
@@ -72,7 +78,10 @@ export default {
         categoryCreated = true;
       }
 
-      const provisionalGuide = validateGuide({ ...body, order: 0 }, Object.keys(siteSettings.categories));
+      const provisionalGuide = validateGuide(
+        { ...body, body: preparedBody.body, order: 0 },
+        Object.keys(siteSettings.categories),
+      );
       const path = guidePath(provisionalGuide.id);
       const [current, statusDocument] = await Promise.all([
         readRepoFile(path, { allowMissing: true }),
@@ -91,10 +100,14 @@ export default {
         : [];
       const guide = {
         ...provisionalGuide,
+        body: preparedBody.body,
         order: resolveAutomaticMethodOrder(existingOrder, otherOrders),
       };
+      const guideFileContent = composeGuideFile(guide);
+      const parsedRoundTrip = parseGuideFile(guide.id, guideFileContent);
+      const verifiedBody = assertGuideBodyRoundTrip(preparedBody.body, parsedRoundTrip.body);
 
-      const files = [{ path, content: composeGuideFile(guide) }];
+      const files = [{ path, content: guideFileContent }];
       if (!statusDocument.entries[guide.id]) {
         statusDocument.entries[guide.id] = {
           status: 'active',
@@ -133,6 +146,11 @@ export default {
         settingsSha: categoryCreated ? result.files[SITE_SETTINGS_PATH] : siteDocument.sha,
         categories: siteSettings.categories,
         categoryCreated,
+        contentIntegrity: {
+          fingerprint: verifiedBody.fingerprint,
+          repairs: preparedBody.repairs,
+          structure: verifiedBody.structure,
+        },
         commit: result.commit?.sha || null,
         message: categoryCreated
           ? 'Category and method saved together. Vercel is publishing both in one build.'
@@ -141,6 +159,12 @@ export default {
             : 'Method created. Vercel will publish it after the next build.',
       });
     } catch (error) {
+      if (error instanceof GuideContentIntegrityError) {
+        return handleError(new HttpError(422, error.message, {
+          code: error.code,
+          ...error.details,
+        }));
+      }
       return handleError(error);
     }
   },
