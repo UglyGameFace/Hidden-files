@@ -19,6 +19,10 @@ import {
 } from './guide-content-integrity.js';
 import { nextAutomaticMethodOrder } from './method-order.js';
 import { readSiteSettings } from './site-settings.js';
+import {
+  assertApprovedWhopSource,
+  readWhopSourcePolicy,
+} from './whop-source-policy.js';
 
 const IMPORTS_PATH = 'src/data/whop-imports.json';
 const MAX_BATCH_ITEMS = 50;
@@ -27,8 +31,8 @@ const MAX_BATCH_CONTENT = 4_000_000;
 function sourceKey(item) {
   const type = String(item?.sourceType || '').trim();
   const id = String(item?.sourceId || '').trim();
-  if (!['course-lesson', 'forum-post'].includes(type) || !id) {
-    throw new HttpError(422, 'Every Whop item needs a valid source type and source ID.');
+  if (type !== 'forum-post' || !id) {
+    throw new HttpError(422, 'Every Whop import item must be a valid forum post.');
   }
   return `${type}:${id}`;
 }
@@ -60,7 +64,7 @@ function preparedSource(item) {
   if (item?.integrity?.blocked) throw new HttpError(422, `${item.title || item.sourceId} is blocked by the formatting integrity check.`);
   const originalBody = String(item?.body || '');
   const combinedBody = `${originalBody}${attachmentMarkdown(item?.attachments)}`;
-  const prepared = prepareGuideBody(combinedBody, { source: `Whop ${item.sourceType} ${item.sourceId}` });
+  const prepared = prepareGuideBody(combinedBody, { source: `Whop forum post ${item.sourceId}` });
   const sourceFingerprint = contentFingerprint(JSON.stringify({
     sourceType: item.sourceType,
     sourceId: item.sourceId,
@@ -126,7 +130,7 @@ function keywordsFor(item) {
   return [
     'Whop',
     item.experienceName,
-    item.courseTitle,
+    item.company?.title,
     item.author?.username,
     item.author?.name,
   ].map((value) => String(value || '').trim()).filter(Boolean).slice(0, 24);
@@ -138,15 +142,19 @@ export async function importWhopDrafts(input = {}) {
   }
   const category = String(input.category || '').trim();
   const items = Array.isArray(input.items) ? input.items : [];
-  if (!items.length) throw new HttpError(422, 'Choose at least one Whop guide to import.');
-  if (items.length > MAX_BATCH_ITEMS) throw new HttpError(422, `Import at most ${MAX_BATCH_ITEMS} guides per batch.`);
+  if (!items.length) throw new HttpError(422, 'Approve at least one Whop post to import.');
+  if (items.length > MAX_BATCH_ITEMS) throw new HttpError(422, `Import at most ${MAX_BATCH_ITEMS} posts per batch.`);
 
-  const siteDocument = await readSiteSettings();
+  const [siteDocument, sourcePolicy] = await Promise.all([
+    readSiteSettings(),
+    readWhopSourcePolicy(),
+  ]);
   if (!siteDocument.settings.categories?.[category]) throw new HttpError(422, 'Choose a category from the current SniperPlug category registry.');
+  for (const item of items) assertApprovedWhopSource(sourcePolicy.registry, item.experienceId);
 
   const preparedItems = items.map((item) => ({ item, ...preparedSource(item), key: sourceKey(item) }));
   const totalContent = preparedItems.reduce((sum, entry) => sum + Buffer.byteLength(entry.prepared.body, 'utf8'), 0);
-  if (totalContent > MAX_BATCH_CONTENT) throw new HttpError(422, 'That import batch is too large. Import fewer guides at once.');
+  if (totalContent > MAX_BATCH_CONTENT) throw new HttpError(422, 'That import batch is too large. Import fewer posts at once.');
 
   const [importsDocument, statusDocument, guideMap] = await Promise.all([
     readImportRegistry(),
@@ -174,10 +182,10 @@ export async function importWhopDrafts(input = {}) {
     const existing = prior?.guideId ? guideMap.get(prior.guideId) : null;
     const guideId = existing?.id || uniqueGuideId(entry.item, guideMap, reservedIds);
     reservedIds.add(guideId);
-    const descriptionFallback = `Imported from ${entry.item.experienceName || 'Whop'} for review.`;
+    const descriptionFallback = `Imported from ${entry.item.experienceName || entry.item.company?.title || 'Whop'} for review.`;
     const guide = validateGuide({
       id: guideId,
-      title: boundedText(entry.item.title, 'Imported Whop guide', 140),
+      title: boundedText(entry.item.title, 'Imported Whop post', 140),
       description: boundedText(entry.item.description, descriptionFallback, 260),
       category,
       featured: false,
@@ -236,7 +244,7 @@ export async function importWhopDrafts(input = {}) {
   files.push({ path: IMPORTS_PATH, content: registryContent(registry) });
   if (statusChanged) files.push({ path: 'src/data/deal-status.json', content: statusFileContent(statusDocument.entries) });
 
-  const write = await writeRepoFiles(files, `Import ${files.filter((file) => file.path.startsWith('src/content/hacks/')).length} Whop guide drafts`);
+  const write = await writeRepoFiles(files, `Import ${files.filter((file) => file.path.startsWith('src/content/hacks/')).length} Whop post drafts`);
   return {
     results,
     commit: write.commit?.sha || null,
