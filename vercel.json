@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)src/data/deal-status.json'",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)src/data/deal-status.json' ':(exclude)src/data/whop-sources.json'",
   "rewrites": [
     {
       "source": "/api/whop-oauth-start",
