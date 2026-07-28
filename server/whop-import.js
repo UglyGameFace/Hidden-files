@@ -47,33 +47,73 @@ function boundedText(value, fallback, max) {
   return (text || fallback).slice(0, max);
 }
 
+function safeAttachmentLabel(value) {
+  return String(value || 'Attachment')
+    .replace(/[\[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160) || 'Attachment';
+}
+
 function attachmentMarkdown(attachments) {
-  const safe = (Array.isArray(attachments) ? attachments : []).filter((attachment) => /^https:\/\//i.test(String(attachment?.url || '')));
-  if (!safe.length) return '';
-  const lines = safe.map((attachment) => {
-    const label = String(attachment.filename || 'Attachment').replace(/[\[\]]/g, '');
+  const values = Array.isArray(attachments) ? attachments : [];
+  if (!values.length) return { markdown: '', reviewCount: 0 };
+
+  const durable = values.filter((attachment) => (
+    attachment?.durable === true
+    && String(attachment?.visibility || '').toLowerCase() === 'public'
+    && /^https:\/\//i.test(String(attachment?.url || ''))
+  ));
+  const review = values.filter((attachment) => !durable.includes(attachment));
+  const lines = durable.map((attachment) => {
+    const label = safeAttachmentLabel(attachment.filename);
     const url = String(attachment.url);
     return String(attachment.contentType || '').toLowerCase().startsWith('image/')
       ? `![${label}](${url})`
       : `- [${label}](${url})`;
   });
-  return `\n\n## Attachments\n\n${lines.join('\n\n')}`;
+  const warnings = review.map((attachment) => {
+    const label = safeAttachmentLabel(attachment.filename);
+    const reason = String(attachment.reviewReason || 'This Whop attachment does not have a verified permanent public URL. Re-upload it before publishing.').trim();
+    return `> **Attachment review required — ${label}:** ${reason}`;
+  });
+  return {
+    markdown: `\n\n## Attachments\n\n${[...lines, ...warnings].join('\n\n')}`,
+    reviewCount: review.length,
+  };
+}
+
+function attachmentFingerprintData(attachments) {
+  return (Array.isArray(attachments) ? attachments : []).map((attachment) => ({
+    id: String(attachment?.id || ''),
+    filename: String(attachment?.filename || ''),
+    contentType: String(attachment?.contentType || ''),
+    visibility: String(attachment?.visibility || 'unknown'),
+    durable: attachment?.durable === true,
+    url: attachment?.durable === true ? String(attachment?.url || '') : null,
+    reviewReason: attachment?.durable === true ? null : String(attachment?.reviewReason || ''),
+  }));
 }
 
 function preparedSource(item) {
   if (item?.integrity?.blocked) throw new HttpError(422, `${item.title || item.sourceId} is blocked by the formatting integrity check.`);
   const originalBody = String(item?.body || '');
-  const combinedBody = `${originalBody}${attachmentMarkdown(item?.attachments)}`;
+  const attachmentSection = attachmentMarkdown(item?.attachments);
+  const combinedBody = `${originalBody}${attachmentSection.markdown}`;
   const prepared = prepareGuideBody(combinedBody, { source: `Whop forum post ${item.sourceId}` });
   const sourceFingerprint = contentFingerprint(JSON.stringify({
     sourceType: item.sourceType,
     sourceId: item.sourceId,
     title: item.title,
     body: prepared.body,
-    attachments: item.attachments || [],
+    attachments: attachmentFingerprintData(item.attachments),
     updatedAt: item.updatedAt || null,
   }));
-  return { prepared, sourceFingerprint };
+  return {
+    prepared,
+    sourceFingerprint,
+    attachmentReviewCount: attachmentSection.reviewCount,
+  };
 }
 
 async function readImportRegistry() {
@@ -175,7 +215,13 @@ export async function importWhopDrafts(input = {}) {
   for (const entry of preparedItems) {
     const prior = registry.items[entry.key] || null;
     if (prior?.fingerprint === entry.sourceFingerprint && guideMap.has(prior.guideId)) {
-      results.push({ sourceKey: entry.key, guideId: prior.guideId, action: 'unchanged', title: entry.item.title });
+      results.push({
+        sourceKey: entry.key,
+        guideId: prior.guideId,
+        action: 'unchanged',
+        title: entry.item.title,
+        attachmentReviewCount: entry.attachmentReviewCount,
+      });
       continue;
     }
 
@@ -190,7 +236,7 @@ export async function importWhopDrafts(input = {}) {
       category,
       featured: false,
       draft: true,
-      badge: 'Imported',
+      badge: entry.attachmentReviewCount ? 'Review files' : 'Imported',
       keywords: keywordsFor(entry.item),
       published: safeDate(entry.item.createdAt),
       readTime: readTime(entry.prepared.body),
@@ -209,7 +255,9 @@ export async function importWhopDrafts(input = {}) {
         status: 'active',
         expiresAt: null,
         verifiedAt: new Date().toISOString(),
-        note: 'Imported from Whop as a hidden draft.',
+        note: entry.attachmentReviewCount
+          ? `Imported from Whop as a hidden draft; ${entry.attachmentReviewCount} attachment${entry.attachmentReviewCount === 1 ? '' : 's'} require review.`
+          : 'Imported from Whop as a hidden draft.',
       };
       statusChanged = true;
     }
@@ -227,19 +275,22 @@ export async function importWhopDrafts(input = {}) {
       importedAt: new Date().toISOString(),
       integrityFingerprint: roundTrip.fingerprint,
       repairs: roundTrip.repairs,
+      attachmentReviewCount: entry.attachmentReviewCount,
     };
     results.push({
       sourceKey: entry.key,
       guideId: guide.id,
       action: existing ? 'updated-draft' : 'created-draft',
       title: guide.title,
+      attachmentReviewCount: entry.attachmentReviewCount,
       integrity: { fingerprint: roundTrip.fingerprint, repairs: roundTrip.repairs },
       live: normalizeStatus(statusDocument.entries[guide.id]),
     });
   }
 
+  const attachmentReviews = results.reduce((sum, result) => sum + Number(result.attachmentReviewCount || 0), 0);
   if (!files.length) {
-    return { results, commit: null, imported: 0, unchanged: results.length };
+    return { results, commit: null, imported: 0, unchanged: results.length, attachmentReviews };
   }
   files.push({ path: IMPORTS_PATH, content: registryContent(registry) });
   if (statusChanged) files.push({ path: 'src/data/deal-status.json', content: statusFileContent(statusDocument.entries) });
@@ -250,5 +301,6 @@ export async function importWhopDrafts(input = {}) {
     commit: write.commit?.sha || null,
     imported: results.filter((result) => result.action !== 'unchanged').length,
     unchanged: results.filter((result) => result.action === 'unchanged').length,
+    attachmentReviews,
   };
 }
