@@ -86,6 +86,11 @@ assert.ok(sourcePolicy.includes('saveWhopSourceDecisions'), 'The source policy h
 assert.ok(sourcePolicy.includes('assertApprovedWhopSource'), 'The server has no exact source approval guard.');
 assert.ok(discovery.includes("allPages(session, 'memberships'"), 'Joined Whop memberships are not discovered automatically.');
 assert.ok(discovery.includes("allPages(session, 'forums'"), 'Readable forums are not discovered for joined groups.');
+assert.ok(discovery.includes('product_id: product.id'), 'Forum discovery is not scoped to the exact membership product.');
+assert.ok(discovery.includes("allPages(session, 'experiences'"), 'Product-scoped experience fallback is missing.');
+assert.ok(discovery.includes('isForumExperience'), 'The experience fallback does not identify native forum-powered experiences.');
+assert.ok(discovery.includes('experienceTypes'), 'Unsupported Whop experience types are not reported clearly.');
+assert.ok(!discovery.includes("allPages(session, 'forums', { company_id: company.id }"), 'Company-wide forum enumeration must not replace membership-product scoping.');
 assert.ok(discovery.includes('discoverWhopSources'), 'The automatic source discovery service is missing.');
 assert.ok(!discovery.includes('membership?.user?.email'), 'Membership email data must not be copied into the source-discovery result.');
 assert.ok(discovery.includes("source.decision !== 'approved'"), 'Discovery does not stop before loading posts from an unapproved source.');
@@ -201,7 +206,9 @@ for (const path of [
 }
 
 console.log('\nWHOP IMPORTER AUDIT PASSED\n');
-console.log('✓ The importer automatically discovers joined Whop groups and readable forums.');
+console.log('✓ The importer automatically discovers joined Whop groups and product-scoped readable forums.');
+console.log('✓ Product-scoped experience discovery recovers forum modules without company-wide enumeration.');
+console.log('✓ Unsupported Whop experience types are reported instead of collapsed into a generic warning.');
 console.log('✓ Black Box and Hidden Files can be selected together without finding experience IDs.');
 console.log('✓ Source-level and post-level bulk Approve/Disapprove actions are visible and enforced.');
 console.log('✓ The manual experience-ID field remains available only as an advanced fallback.');
