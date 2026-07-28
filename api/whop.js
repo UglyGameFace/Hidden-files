@@ -9,6 +9,7 @@ import {
 import { verifyWhopAttachments } from '../server/whop-attachments.js';
 import {
   discoverWhopGuides,
+  discoverWhopSources,
   resolveWhopExperience,
 } from '../server/whop-discovery.js';
 import { importWhopDrafts } from '../server/whop-import.js';
@@ -23,8 +24,11 @@ import {
 import {
   readWhopSourcePolicy,
   saveWhopSourceDecision,
+  saveWhopSourceDecisions,
   whopSourceOptions,
 } from '../server/whop-source-policy.js';
+
+const MAX_BULK_SOURCES = 100;
 
 function actionFrom(request) {
   return String(new URL(request.url).searchParams.get('action') || '').trim();
@@ -75,6 +79,13 @@ async function handleSession(request) {
   return methodNotAllowed(['GET', 'DELETE']);
 }
 
+async function handleSources(request) {
+  if (request.method !== 'GET') return methodNotAllowed(['GET']);
+  const { session, setCookie } = await requireWhopSession(request);
+  const result = await discoverWhopSources(session);
+  return attachCookie(json(result), setCookie);
+}
+
 async function handleSourceDecision(request) {
   if (request.method === 'GET') {
     const policy = await readWhopSourcePolicy();
@@ -84,16 +95,43 @@ async function handleSourceDecision(request) {
   requireSameOrigin(request);
   const body = await request.json().catch(() => ({}));
   const decision = String(body.decision || '').trim();
+  const experienceIds = Array.isArray(body.experienceIds)
+    ? [...new Set(body.experienceIds.map((value) => String(value || '').trim()).filter(Boolean))]
+    : [];
+  if (experienceIds.length > MAX_BULK_SOURCES) throw new HttpError(422, `Update at most ${MAX_BULK_SOURCES} Whop forums at once.`);
+
   const { session, setCookie } = await requireWhopSession(request);
-  const { experience, experienceId } = await resolveWhopExperience(session, body);
-  const result = await saveWhopSourceDecision(experience, experienceId, decision);
+  let result;
+  let changedCount = 1;
+  if (experienceIds.length) {
+    const discovery = await discoverWhopSources(session);
+    const available = new Map(discovery.sources.map((entry) => [entry.experience.id, entry]));
+    const selected = experienceIds.map((id) => available.get(id)).filter(Boolean);
+    if (selected.length !== experienceIds.length) {
+      throw new HttpError(409, 'One or more selected Whop forums are no longer available. Refresh your groups and try again.');
+    }
+    result = await saveWhopSourceDecisions(selected.map((entry) => ({
+      experience: {
+        ...entry.experience,
+        company: entry.experience.company,
+      },
+      experienceId: entry.experience.id,
+    })), decision);
+    changedCount = result.sources.length;
+  } else {
+    const { experience, experienceId } = await resolveWhopExperience(session, body);
+    const single = await saveWhopSourceDecision(experience, experienceId, decision);
+    result = { sources: [single.source], commit: single.commit };
+  }
+
   const policy = await readWhopSourcePolicy();
   return attachCookie(json({
     ...result,
-    sources: whopSourceOptions(policy.registry),
+    source: result.sources[0] || null,
+    sourceOptions: whopSourceOptions(policy.registry),
     message: decision === 'approved'
-      ? `${result.source.label} is approved for Whop post scans.`
-      : `${result.source.label} is disapproved and cannot be scanned or imported.`,
+      ? `${changedCount} Whop forum${changedCount === 1 ? '' : 's'} approved for post review.`
+      : `${changedCount} Whop forum${changedCount === 1 ? '' : 's'} disapproved and blocked from scans and imports.`,
   }), setCookie);
 }
 
@@ -158,6 +196,7 @@ export default {
         return beginWhopOAuth(request);
       }
       if (action === 'session') return await handleSession(request);
+      if (action === 'sources') return await handleSources(request);
       if (action === 'source-decision') return await handleSourceDecision(request);
       if (action === 'discover') return await handleDiscover(request);
       if (action === 'import') return await handleImport(request);
