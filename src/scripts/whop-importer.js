@@ -91,7 +91,7 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
 
   function decisionStorageKey() {
     const id = state.discovery?.experience?.id;
-    return id ? `sniperplug-whop-decisions:${id}` : '';
+    return id ? `lobby-hacks-whop-decisions:${id}` : '';
   }
 
   function loadDecisions() {
@@ -326,7 +326,7 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
     clearStatus();
     setHidden(elements.review, false);
     if (elements.experienceTitle instanceof HTMLElement) elements.experienceTitle.textContent = `${output.source?.label || output.experience?.name || 'Whop'} posts`;
-    if (elements.scanSummary instanceof HTMLElement) elements.scanSummary.textContent = `${output.counts?.ready || 0} ready · ${output.counts?.blocked || 0} blocked · approve only what should become a SniperPlug draft.`;
+    if (elements.scanSummary instanceof HTMLElement) elements.scanSummary.textContent = `${output.counts?.ready || 0} ready · ${output.counts?.blocked || 0} blocked · approve only what should become a The 420 Lobby Hacks draft.`;
     renderPosts();
   }
 
