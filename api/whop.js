@@ -104,19 +104,21 @@ async function handleSourceDecision(request) {
   let result;
   let changedCount = 1;
   if (experienceIds.length) {
-    const discovery = await discoverWhopSources(session);
-    const available = new Map(discovery.sources.map((entry) => [entry.experience.id, entry]));
-    const selected = experienceIds.map((id) => available.get(id)).filter(Boolean);
-    if (selected.length !== experienceIds.length) {
-      throw new HttpError(409, 'One or more selected Whop forums are no longer available. Refresh your groups and try again.');
+    let available = new Map();
+    try {
+      const discovery = await discoverWhopSources(session);
+      available = new Map(discovery.sources.map((entry) => [entry.experience.id, entry]));
+    } catch {
+      // The advanced fallback remains usable even when membership discovery lacks permission.
     }
-    result = await saveWhopSourceDecisions(selected.map((entry) => ({
-      experience: {
-        ...entry.experience,
-        company: entry.experience.company,
-      },
-      experienceId: entry.experience.id,
-    })), decision);
+
+    const selected = await Promise.all(experienceIds.map(async (id) => {
+      const discovered = available.get(id);
+      if (discovered) return { experience: discovered.experience, experienceId: discovered.experience.id };
+      const resolved = await resolveWhopExperience(session, { experienceId: id });
+      return { experience: resolved.experience, experienceId: resolved.experienceId };
+    }));
+    result = await saveWhopSourceDecisions(selected, decision);
     changedCount = result.sources.length;
   } else {
     const { experience, experienceId } = await resolveWhopExperience(session, body);
