@@ -13,7 +13,7 @@ const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 20_000;
-const DEFAULT_SCOPES = 'openid profile email forum:read';
+const DEFAULT_SCOPES = 'openid profile email forum:read member:basic:read member:email:read';
 
 function oauthSecret() {
   const secret = process.env.WHOP_TOKEN_SECRET

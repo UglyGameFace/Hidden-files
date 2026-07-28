@@ -15,6 +15,10 @@
       "destination": "/api/whop?action=session"
     },
     {
+      "source": "/api/whop-sources",
+      "destination": "/api/whop?action=sources"
+    },
+    {
       "source": "/api/whop-source-decision",
       "destination": "/api/whop?action=source-decision"
     },

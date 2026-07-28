@@ -11,6 +11,7 @@ export const WHOP_DEFAULT_GROUPS = Object.freeze([
 ]);
 
 const VALID_DECISIONS = new Set(['approved', 'disapproved']);
+const MAX_BULK_SOURCES = 100;
 
 export function normalizeWhopGroupName(value) {
   return String(value || '')
@@ -102,27 +103,53 @@ export function assertApprovedWhopSource(registry, requestedExperienceId) {
   return source;
 }
 
-export async function saveWhopSourceDecision(experience, requestedExperienceId, decision) {
+export async function saveWhopSourceDecisions(entries, decision) {
   if (!VALID_DECISIONS.has(decision)) throw new HttpError(422, 'Choose Approve or Disapprove.');
+  const values = Array.isArray(entries) ? entries : [];
+  if (!values.length) throw new HttpError(422, 'Select at least one Whop forum source.');
+  if (values.length > MAX_BULK_SOURCES) throw new HttpError(422, `Update at most ${MAX_BULK_SOURCES} Whop sources at once.`);
+
+  const unique = new Map();
+  for (const entry of values) {
+    const experience = entry?.experience || entry;
+    const experienceId = whopExperienceId(entry?.experienceId || experience?.id);
+    if (!experienceId || !experience) continue;
+    unique.set(experienceId, { experience, experienceId });
+  }
+  if (!unique.size) throw new HttpError(422, 'No valid Whop forum sources were selected.');
+
   const current = await readWhopSourcePolicy();
-  const state = whopSourceDecision(experience, requestedExperienceId, current.registry);
   const now = new Date().toISOString();
-  current.registry.sources[state.experienceId] = {
-    experienceId: state.experienceId,
-    label: sourceLabel(experience),
-    decision,
-    defaultKey: state.defaultKey,
-    companyId: String(experience?.company?.id || '') || null,
-    companyTitle: String(experience?.company?.title || experience?.company?.name || '') || null,
-    experienceName: String(experience?.name || '') || null,
-    updatedAt: now,
-  };
+  const states = [];
+  for (const { experience, experienceId } of unique.values()) {
+    const state = whopSourceDecision(experience, experienceId, current.registry);
+    current.registry.sources[state.experienceId] = {
+      experienceId: state.experienceId,
+      label: sourceLabel(experience),
+      decision,
+      defaultKey: state.defaultKey,
+      companyId: String(experience?.company?.id || '') || null,
+      companyTitle: String(experience?.company?.title || experience?.company?.name || '') || null,
+      experienceName: String(experience?.name || '') || null,
+      updatedAt: now,
+    };
+    states.push(whopSourceDecision(experience, state.experienceId, current.registry));
+  }
+
   const write = await writeRepoFiles([
     { path: WHOP_SOURCES_PATH, content: serializeWhopSourcePolicy(current.registry) },
-  ], `${decision === 'approved' ? 'Approve' : 'Disapprove'} Whop source: ${state.label}`);
+  ], `${decision === 'approved' ? 'Approve' : 'Disapprove'} ${states.length} Whop source${states.length === 1 ? '' : 's'}`);
   return {
-    source: whopSourceDecision(experience, state.experienceId, current.registry),
+    sources: states,
     commit: write.commit?.sha || null,
+  };
+}
+
+export async function saveWhopSourceDecision(experience, requestedExperienceId, decision) {
+  const result = await saveWhopSourceDecisions([{ experience, experienceId: requestedExperienceId }], decision);
+  return {
+    source: result.sources[0],
+    commit: result.commit,
   };
 }
 
