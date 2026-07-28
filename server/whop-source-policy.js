@@ -126,26 +126,51 @@ export async function saveWhopSourceDecision(experience, requestedExperienceId, 
   };
 }
 
+function compactExperienceId(value) {
+  const id = whopExperienceId(value);
+  return id ? `…${id.slice(-6)}` : '';
+}
+
+function exactSourceOption(source, group = null) {
+  const experienceName = String(source.experienceName || '').trim();
+  const groupLabel = group?.label || String(source.label || source.companyTitle || 'Whop group');
+  const distinctExperience = experienceName
+    && normalizeWhopGroupName(experienceName) !== normalizeWhopGroupName(groupLabel);
+  return {
+    key: source.experienceId,
+    label: distinctExperience
+      ? `${groupLabel} · ${experienceName}`
+      : `${groupLabel} · ${compactExperienceId(source.experienceId)}`,
+    experienceId: source.experienceId,
+    decision: source.decision,
+    builtIn: Boolean(group),
+    groupKey: group?.key || null,
+  };
+}
+
 export function whopSourceOptions(registry) {
-  const normalized = normalizeRegistry(registry);
-  const defaults = WHOP_DEFAULT_GROUPS.map((group) => {
-    const source = Object.values(normalized.sources).find((entry) => entry.defaultKey === group.key) || null;
-    return {
-      key: group.key,
-      label: group.label,
-      experienceId: source?.experienceId || null,
-      decision: source?.decision || 'pending',
-      builtIn: true,
-    };
-  });
-  const extras = Object.values(normalized.sources)
+  const sources = Object.values(normalizeRegistry(registry).sources)
+    .sort((left, right) => String(left.label).localeCompare(String(right.label)) || String(left.experienceId).localeCompare(String(right.experienceId)));
+  const output = [];
+
+  for (const group of WHOP_DEFAULT_GROUPS) {
+    const matches = sources.filter((source) => source.defaultKey === group.key);
+    if (!matches.length) {
+      output.push({
+        key: group.key,
+        label: group.label,
+        experienceId: null,
+        decision: 'pending',
+        builtIn: true,
+        groupKey: group.key,
+      });
+      continue;
+    }
+    output.push(...matches.map((source) => exactSourceOption(source, group)));
+  }
+
+  output.push(...sources
     .filter((source) => !source.defaultKey)
-    .map((source) => ({
-      key: source.experienceId,
-      label: source.label,
-      experienceId: source.experienceId,
-      decision: source.decision,
-      builtIn: false,
-    }));
-  return [...defaults, ...extras];
+    .map((source) => exactSourceOption(source)));
+  return output;
 }
