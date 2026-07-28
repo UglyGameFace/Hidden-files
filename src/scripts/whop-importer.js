@@ -10,8 +10,16 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
     connectionDetail: $('[data-whop-connection-detail]'),
     connect: $('[data-whop-connect]'),
     disconnect: $('[data-whop-disconnect]'),
-    sourceOptions: $('[data-whop-source-options]'),
-    sourceOptionList: $('[data-whop-source-option-list]'),
+    sourceBrowser: $('[data-whop-source-browser]'),
+    sourceSummary: $('[data-whop-source-summary]'),
+    refreshSources: $('[data-whop-refresh-sources]'),
+    groupList: $('[data-whop-group-list]'),
+    sourceEmpty: $('[data-whop-source-empty]'),
+    selectDefaults: $('[data-whop-select-defaults]'),
+    approveSelected: $('[data-whop-approve-selected]'),
+    disapproveSelected: $('[data-whop-disapprove-selected]'),
+    clearSourceSelection: $('[data-whop-clear-source-selection]'),
+    advancedSource: $('[data-whop-advanced-source]'),
     scanForm: $('[data-whop-scan-form]'),
     scanButton: $('[data-whop-scan]'),
     scanStatus: $('[data-whop-scan-status]'),
@@ -46,6 +54,8 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
   const state = {
     initialized: false,
     connected: false,
+    sourceDiscovery: null,
+    selectedSources: new Set(),
     discovery: null,
     sourceInput: '',
     decisions: new Map(),
@@ -134,41 +144,232 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
     if ([...elements.category.options].some((option) => option.value === previous)) elements.category.value = previous;
   }
 
-  function renderSourceOptions(sources = []) {
-    if (!(elements.sourceOptionList instanceof HTMLElement)) return;
-    elements.sourceOptionList.replaceChildren();
-    for (const source of sources) {
-      const chip = document.createElement('span');
-      chip.className = 'whop-source-chip';
-      chip.dataset.state = source.decision || 'pending';
-      const label = document.createElement('strong');
-      label.textContent = source.label || 'Whop group';
-      const status = document.createElement('small');
-      status.textContent = source.decision === 'approved'
-        ? 'Approved'
-        : source.decision === 'disapproved'
-          ? 'Disapproved'
-          : 'Not linked yet';
-      chip.append(label, status);
-      elements.sourceOptionList.append(chip);
-    }
-    setHidden(elements.sourceOptions, !sources.length);
-  }
-
   function setConnection(connected, detail = '') {
     state.connected = connected;
     if (elements.connection instanceof HTMLElement) elements.connection.dataset.state = connected ? 'connected' : 'disconnected';
     if (elements.connectionTitle instanceof HTMLElement) elements.connectionTitle.textContent = connected ? 'Whop connected' : 'Whop not connected';
-    if (elements.connectionDetail instanceof HTMLElement) elements.connectionDetail.textContent = detail || (connected ? 'Ready to review approved groups.' : 'Use Whop’s official login. Your password stays with Whop.');
+    if (elements.connectionDetail instanceof HTMLElement) elements.connectionDetail.textContent = detail || (connected ? 'Ready to find your joined groups.' : 'Use Whop’s official login. Your password stays with Whop.');
     setHidden(elements.connect, connected);
     setHidden(elements.disconnect, !connected);
-    setHidden(elements.scanForm, !connected);
+    setHidden(elements.sourceBrowser, !connected);
+    setHidden(elements.advancedSource, !connected);
   }
 
   function sourceDecisionLabel(decision) {
     if (decision === 'approved') return 'Approved';
     if (decision === 'disapproved') return 'Disapproved';
     return 'Needs decision';
+  }
+
+  function createButton(label, className, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    if (className) button.className = className;
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  function sourceEntries() {
+    return (state.sourceDiscovery?.groups || []).flatMap((group) => group.sources || []);
+  }
+
+  function updateSourceBulkControls() {
+    const entries = sourceEntries();
+    const available = new Set(entries.map((entry) => entry.experience?.id).filter(Boolean));
+    for (const id of [...state.selectedSources]) if (!available.has(id)) state.selectedSources.delete(id);
+    const selectedCount = state.selectedSources.size;
+    const defaults = entries.filter((entry) => entry.source?.suggested || entry.source?.defaultKey).map((entry) => entry.experience.id);
+    const selectedDefaults = defaults.filter((id) => state.selectedSources.has(id)).length;
+
+    if (elements.approveSelected instanceof HTMLButtonElement) elements.approveSelected.disabled = state.busy || selectedCount === 0;
+    if (elements.disapproveSelected instanceof HTMLButtonElement) elements.disapproveSelected.disabled = state.busy || selectedCount === 0;
+    if (elements.clearSourceSelection instanceof HTMLButtonElement) elements.clearSourceSelection.disabled = state.busy || selectedCount === 0;
+    if (elements.selectDefaults instanceof HTMLInputElement) {
+      elements.selectDefaults.disabled = state.busy || defaults.length === 0;
+      elements.selectDefaults.checked = defaults.length > 0 && selectedDefaults === defaults.length;
+      elements.selectDefaults.indeterminate = selectedDefaults > 0 && selectedDefaults < defaults.length;
+    }
+  }
+
+  function setSourceSelected(experienceId, selected) {
+    if (!experienceId) return;
+    if (selected) state.selectedSources.add(experienceId);
+    else state.selectedSources.delete(experienceId);
+    renderSourceGroups();
+  }
+
+  function groupSourceIds(group) {
+    return (group?.sources || []).map((entry) => entry.experience?.id).filter(Boolean);
+  }
+
+  function setGroupSelected(group, selected) {
+    for (const id of groupSourceIds(group)) {
+      if (selected) state.selectedSources.add(id);
+      else state.selectedSources.delete(id);
+    }
+    renderSourceGroups();
+  }
+
+  function sourceBadge(decision) {
+    const badge = document.createElement('strong');
+    badge.className = 'whop-decision-badge';
+    badge.dataset.state = decision || 'pending';
+    badge.textContent = sourceDecisionLabel(decision);
+    return badge;
+  }
+
+  function renderSourceGroups() {
+    if (!(elements.groupList instanceof HTMLElement)) return;
+    elements.groupList.replaceChildren();
+    const groups = state.sourceDiscovery?.groups || [];
+    const forumCount = groups.reduce((total, group) => total + Number(group.sources?.length || 0), 0);
+
+    for (const group of groups) {
+      const card = document.createElement('article');
+      card.className = 'whop-group-card';
+      card.dataset.builtIn = String(Boolean(group.builtIn));
+
+      const heading = document.createElement('header');
+      const headingCopy = document.createElement('div');
+      const eyebrow = document.createElement('span');
+      eyebrow.className = 'desk-kicker';
+      eyebrow.textContent = group.builtIn ? 'Default group' : 'Joined group';
+      const title = document.createElement('h4');
+      title.textContent = group.company?.title || 'Whop group';
+      const meta = document.createElement('small');
+      const forumWord = group.sources?.length === 1 ? 'forum' : 'forums';
+      meta.textContent = `${group.sources?.length || 0} readable ${forumWord}${group.company?.products?.length ? ` · ${group.company.products.length} membership product${group.company.products.length === 1 ? '' : 's'}` : ''}`;
+      headingCopy.append(eyebrow, title, meta);
+
+      const groupActions = document.createElement('div');
+      groupActions.className = 'whop-group-actions';
+      const ids = groupSourceIds(group);
+      const allSelected = ids.length > 0 && ids.every((id) => state.selectedSources.has(id));
+      const select = createButton(allSelected ? 'Clear group' : 'Select group', '', () => setGroupSelected(group, !allSelected));
+      select.disabled = state.busy || ids.length === 0;
+      const approveAll = createButton('Approve all', 'whop-approve', () => decideSources(ids, 'approved'));
+      approveAll.disabled = state.busy || ids.length === 0;
+      const disapproveAll = createButton('Disapprove all', 'whop-disapprove', () => decideSources(ids, 'disapproved'));
+      disapproveAll.disabled = state.busy || ids.length === 0;
+      groupActions.append(select, approveAll, disapproveAll);
+      heading.append(headingCopy, groupActions);
+      card.append(heading);
+
+      if (group.error) {
+        const warning = document.createElement('p');
+        warning.className = 'whop-group-warning';
+        warning.textContent = group.error;
+        card.append(warning);
+      }
+
+      const list = document.createElement('div');
+      list.className = 'whop-forum-list';
+      for (const entry of group.sources || []) {
+        const experienceId = entry.experience?.id || '';
+        const decision = entry.source?.decision || 'pending';
+        const row = document.createElement('div');
+        row.className = 'whop-forum-row';
+        row.dataset.state = decision;
+
+        const selectLabel = document.createElement('label');
+        selectLabel.className = 'whop-source-select';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = state.selectedSources.has(experienceId);
+        checkbox.disabled = state.busy;
+        checkbox.setAttribute('aria-label', `Select ${entry.experience?.name || 'Whop forum'}`);
+        checkbox.addEventListener('change', () => setSourceSelected(experienceId, checkbox.checked));
+        const copy = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = entry.experience?.name || 'Forum';
+        const detail = document.createElement('small');
+        detail.textContent = decision === 'approved'
+          ? 'Ready to review posts'
+          : decision === 'disapproved'
+            ? 'Blocked from scans and imports'
+            : 'Choose approve or disapprove';
+        copy.append(name, detail);
+        selectLabel.append(checkbox, copy);
+
+        const actions = document.createElement('div');
+        actions.className = 'whop-forum-actions';
+        const review = createButton('Review posts', '', () => scanSource(experienceId));
+        review.disabled = state.busy;
+        const approve = createButton('Approve', 'whop-approve', () => decideSources([experienceId], 'approved', experienceId));
+        approve.disabled = state.busy || decision === 'approved';
+        const disapprove = createButton('Disapprove', 'whop-disapprove', () => decideSources([experienceId], 'disapproved'));
+        disapprove.disabled = state.busy || decision === 'disapproved';
+        actions.append(sourceBadge(decision), review, approve, disapprove);
+        row.append(selectLabel, actions);
+        list.append(row);
+      }
+      card.append(list);
+      elements.groupList.append(card);
+    }
+
+    if (elements.sourceSummary instanceof HTMLElement) {
+      const counts = state.sourceDiscovery?.counts || {};
+      elements.sourceSummary.textContent = `${counts.groups || 0} joined groups · ${forumCount} readable forums · select one, several, or all default forums.`;
+    }
+    setHidden(elements.sourceEmpty, forumCount > 0);
+    updateSourceBulkControls();
+  }
+
+  async function loadSources({ quiet = false } = {}) {
+    if (!state.connected || state.busy) return;
+    state.busy = true;
+    updateSourceBulkControls();
+    if (elements.refreshSources instanceof HTMLButtonElement) {
+      elements.refreshSources.disabled = true;
+      elements.refreshSources.textContent = 'Finding groups…';
+    }
+    if (!quiet) setStatus('Finding the joined Whop groups and forums your account can read…', 'working');
+    try {
+      state.sourceDiscovery = await api('/api/whop-sources', { method: 'GET', headers: {} });
+      renderSourceGroups();
+      if (!quiet) {
+        const forums = Number(state.sourceDiscovery?.counts?.forums || 0);
+        setStatus(forums ? `Found ${forums} readable Whop forum${forums === 1 ? '' : 's'}.` : 'No readable Whop forums were found.', forums ? 'ok' : 'warning');
+      }
+    } catch (error) {
+      state.sourceDiscovery = null;
+      renderSourceGroups();
+      setStatus(error.message, 'error');
+      if (elements.sourceSummary instanceof HTMLElement) elements.sourceSummary.textContent = 'Automatic discovery needs updated Whop permissions. The advanced fallback remains available.';
+    } finally {
+      state.busy = false;
+      if (elements.refreshSources instanceof HTMLButtonElement) {
+        elements.refreshSources.disabled = false;
+        elements.refreshSources.textContent = 'Refresh groups';
+      }
+      updateSourceBulkControls();
+    }
+  }
+
+  async function decideSources(experienceIds, decision, reviewAfter = '') {
+    const ids = [...new Set((experienceIds || []).filter(Boolean))];
+    if (!ids.length || state.busy) return;
+    state.busy = true;
+    updateSourceBulkControls();
+    setStatus(`${decision === 'approved' ? 'Approving' : 'Disapproving'} ${ids.length} Whop forum${ids.length === 1 ? '' : 's'}…`, 'working');
+    try {
+      const output = await api('/api/whop-source-decision', {
+        method: 'POST',
+        body: JSON.stringify({ experienceIds: ids, decision }),
+      });
+      state.selectedSources.clear();
+      setStatus(output.message, decision === 'approved' ? 'ok' : 'warning');
+      state.busy = false;
+      await loadSources({ quiet: true });
+      if (reviewAfter && decision === 'approved') await scanSource(reviewAfter);
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      state.busy = false;
+      updateSourceBulkControls();
+      renderSourceReview(state.discovery);
+    }
   }
 
   function renderSourceReview(output) {
@@ -179,14 +380,14 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
       return;
     }
     setHidden(elements.sourceReview, false);
-    if (elements.sourceTitle instanceof HTMLElement) elements.sourceTitle.textContent = source.label || experience.company?.title || experience.name || 'Whop group';
+    if (elements.sourceTitle instanceof HTMLElement) elements.sourceTitle.textContent = `${source.label || experience.company?.title || 'Whop group'} · ${experience.name || 'Forum'}`;
     if (elements.sourceDetail instanceof HTMLElement) {
-      const suggestion = source.suggested && source.builtInLabel ? `Recognized as the default ${source.builtInLabel} group. ` : '';
+      const suggestion = source.suggested && source.builtInLabel ? `Recognized as ${source.builtInLabel}. ` : '';
       elements.sourceDetail.textContent = source.decision === 'approved'
-        ? `${suggestion}This exact experience ID is allowed to scan and import posts.`
+        ? `${suggestion}This forum is approved and ready for post review.`
         : source.decision === 'disapproved'
-          ? `${suggestion}This exact experience ID is blocked until you approve it again.`
-          : `${suggestion}Approve or disapprove this exact group before its posts are loaded.`;
+          ? `${suggestion}This forum is blocked until you approve it again.`
+          : `${suggestion}Approve or disapprove this forum before its posts are loaded.`;
     }
     if (elements.sourceState instanceof HTMLElement) {
       elements.sourceState.dataset.state = source.decision || 'pending';
@@ -206,15 +407,6 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
     else state.decisions.delete(sourceKey);
     saveDecisions();
     renderPosts();
-  }
-
-  function createButton(label, className, onClick) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label;
-    if (className) button.className = className;
-    button.addEventListener('click', onClick);
-    return button;
   }
 
   function openPreview(item) {
@@ -259,10 +451,8 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
       const author = item.author?.username || item.author?.name || 'Unknown author';
       meta.textContent = `${author}${item.sourceMeta?.pinned ? ' · Pinned' : ''}${item.updatedAt ? ` · ${new Date(item.updatedAt).toLocaleDateString()}` : ''}`;
       copy.append(title, meta);
-      const badge = document.createElement('strong');
-      badge.className = 'whop-decision-badge';
-      badge.dataset.state = decision;
-      badge.textContent = decision === 'approved' ? 'Approved' : decision === 'disapproved' ? 'Disapproved' : decision === 'blocked' ? 'Blocked' : 'Needs decision';
+      const badge = sourceBadge(decision);
+      badge.textContent = decision === 'blocked' ? 'Blocked' : sourceDecisionLabel(decision);
       heading.append(copy, badge);
 
       const excerpt = document.createElement('p');
@@ -313,40 +503,43 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
 
   function renderDiscovery(output) {
     state.discovery = output;
+    state.sourceInput = output?.experience?.id || state.sourceInput;
     loadDecisions();
-    renderSourceOptions(output.sourceOptions || []);
     renderSourceReview(output);
     if (output.approvalRequired) {
       setHidden(elements.review, true);
       setStatus(output.source?.decision === 'disapproved'
-        ? 'This group is disapproved. Approve it to scan posts.'
-        : 'Approve or disapprove this group before scanning its posts.', 'warning');
+        ? 'This forum is disapproved. Approve it to review posts.'
+        : 'Approve or disapprove this forum before reviewing its posts.', 'warning');
       return;
     }
     clearStatus();
     setHidden(elements.review, false);
-    if (elements.experienceTitle instanceof HTMLElement) elements.experienceTitle.textContent = `${output.source?.label || output.experience?.name || 'Whop'} posts`;
-    if (elements.scanSummary instanceof HTMLElement) elements.scanSummary.textContent = `${output.counts?.ready || 0} ready · ${output.counts?.blocked || 0} blocked · approve only what should become a The 420 Lobby Hacks draft.`;
+    if (elements.experienceTitle instanceof HTMLElement) elements.experienceTitle.textContent = `${output.source?.label || output.experience?.company?.title || 'Whop'} · ${output.experience?.name || 'Forum'} posts`;
+    if (elements.scanSummary instanceof HTMLElement) elements.scanSummary.textContent = `${output.counts?.ready || 0} ready · ${output.counts?.blocked || 0} blocked · approve only what should become a hidden draft.`;
     renderPosts();
   }
 
-  async function scanSource() {
-    if (!(elements.scanForm instanceof HTMLFormElement)) return;
-    const source = String(new FormData(elements.scanForm).get('source') || '').trim();
-    if (!source) return;
+  async function scanSource(sourceOverride = '') {
+    const fallback = elements.scanForm instanceof HTMLFormElement
+      ? String(new FormData(elements.scanForm).get('source') || '').trim()
+      : '';
+    const source = String(sourceOverride || fallback).trim();
+    if (!source || state.busy) return;
     state.sourceInput = source;
     state.busy = true;
     if (elements.scanButton instanceof HTMLButtonElement) {
       elements.scanButton.disabled = true;
-      elements.scanButton.textContent = 'Checking group…';
+      elements.scanButton.textContent = 'Checking forum…';
     }
-    setStatus('Checking the exact Whop group and approval state…', 'working');
+    setStatus('Checking this Whop forum and loading its approval state…', 'working');
     try {
       const output = await api('/api/whop-discover', {
         method: 'POST',
         body: JSON.stringify({ source }),
       });
       renderDiscovery(output);
+      elements.sourceReview?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {
       setHidden(elements.sourceReview, true);
       setHidden(elements.review, true);
@@ -355,35 +548,21 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
       state.busy = false;
       if (elements.scanButton instanceof HTMLButtonElement) {
         elements.scanButton.disabled = false;
-        elements.scanButton.textContent = 'Check group';
+        elements.scanButton.textContent = 'Check forum';
       }
       updateDecisionSummary();
+      updateSourceBulkControls();
     }
   }
 
-  async function decideSource(decision) {
-    if (!state.sourceInput || state.busy) return;
-    state.busy = true;
-    renderSourceReview(state.discovery);
-    setStatus(`${decision === 'approved' ? 'Approving' : 'Disapproving'} this exact Whop group…`, 'working');
-    try {
-      const output = await api('/api/whop-source-decision', {
-        method: 'POST',
-        body: JSON.stringify({ source: state.sourceInput, decision }),
-      });
-      renderSourceOptions(output.sources || []);
-      setStatus(output.message, decision === 'approved' ? 'ok' : 'warning');
-      if (decision === 'approved') await scanSource();
-      else {
-        if (state.discovery?.source) state.discovery.source.decision = 'disapproved';
-        renderSourceReview(state.discovery);
-        setHidden(elements.review, true);
-      }
-    } catch (error) {
-      setStatus(error.message, 'error');
-    } finally {
-      state.busy = false;
+  async function decideCurrentSource(decision) {
+    const id = state.discovery?.experience?.id || state.sourceInput;
+    if (!id) return;
+    await decideSources([id], decision, decision === 'approved' ? id : '');
+    if (decision === 'disapproved') {
+      if (state.discovery?.source) state.discovery.source.decision = 'disapproved';
       renderSourceReview(state.discovery);
+      setHidden(elements.review, true);
     }
   }
 
@@ -428,9 +607,8 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
         return;
       }
       const name = session.session?.user?.username || session.session?.user?.name || session.session?.user?.email || '';
-      setConnection(Boolean(session.connected), session.connected ? `Connected${name ? ` as ${name}` : ''}.` : 'Use Whop’s official login. Your password stays with Whop.');
-      const sources = await api('/api/whop-source-decision', { method: 'GET', headers: {} });
-      renderSourceOptions(sources.sources || []);
+      setConnection(Boolean(session.connected), session.connected ? `Connected${name ? ` as ${name}` : ''}. Finding your joined groups automatically.` : 'Use Whop’s official login. Your password stays with Whop.');
+      if (session.connected) await loadSources();
     } catch (error) {
       if (error.status === 401) {
         state.initialized = false;
@@ -440,12 +618,27 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
     }
   }
 
+  elements.refreshSources?.addEventListener('click', () => loadSources());
+  elements.selectDefaults?.addEventListener('change', () => {
+    const defaults = sourceEntries().filter((entry) => entry.source?.suggested || entry.source?.defaultKey).map((entry) => entry.experience?.id).filter(Boolean);
+    for (const id of defaults) {
+      if (elements.selectDefaults instanceof HTMLInputElement && elements.selectDefaults.checked) state.selectedSources.add(id);
+      else state.selectedSources.delete(id);
+    }
+    renderSourceGroups();
+  });
+  elements.approveSelected?.addEventListener('click', () => decideSources([...state.selectedSources], 'approved'));
+  elements.disapproveSelected?.addEventListener('click', () => decideSources([...state.selectedSources], 'disapproved'));
+  elements.clearSourceSelection?.addEventListener('click', () => {
+    state.selectedSources.clear();
+    renderSourceGroups();
+  });
   elements.scanForm?.addEventListener('submit', (event) => {
     event.preventDefault();
     scanSource();
   });
-  elements.sourceApprove?.addEventListener('click', () => decideSource('approved'));
-  elements.sourceDisapprove?.addEventListener('click', () => decideSource('disapproved'));
+  elements.sourceApprove?.addEventListener('click', () => decideCurrentSource('approved'));
+  elements.sourceDisapprove?.addEventListener('click', () => decideCurrentSource('disapproved'));
   elements.approveReady?.addEventListener('click', () => {
     for (const item of state.discovery?.items || []) if (!item.integrity?.blocked) state.decisions.set(item.sourceKey, 'approved');
     saveDecisions();
@@ -468,10 +661,13 @@ if (root instanceof HTMLElement && root.dataset.whopImporterReady !== 'true') {
   elements.disconnect?.addEventListener('click', async () => {
     try { await api('/api/whop-session', { method: 'DELETE', body: '{}' }); } catch { /* Clear local UI either way. */ }
     state.discovery = null;
+    state.sourceDiscovery = null;
     state.decisions.clear();
+    state.selectedSources.clear();
     setConnection(false);
     setHidden(elements.sourceReview, true);
     setHidden(elements.review, true);
+    renderSourceGroups();
   });
   root.querySelectorAll('[data-whop-preview-close]').forEach((button) => button.addEventListener('click', closePreview));
   elements.previewBackdrop?.addEventListener('click', (event) => {
