@@ -17,7 +17,6 @@ const MAX_PAGES = 100;
 const MAX_ITEMS = 1000;
 const MAX_COMPANIES = 100;
 const SOURCE_CONCURRENCY = 5;
-const ACCESS_STATUSES = new Set(['trialing', 'active', 'past_due', 'completed', 'canceling']);
 
 function plainExcerpt(value, limit = 240) {
   return String(value || '')
@@ -197,11 +196,10 @@ function builtInGroup(companyTitle) {
   return WHOP_DEFAULT_GROUPS.find((group) => normalizeWhopGroupName(group.label) === normalized) || null;
 }
 
-function membershipCompanies(memberships) {
+export function membershipCompanies(memberships) {
   const companies = new Map();
   for (const membership of memberships) {
     const status = String(membership?.status || '').toLowerCase();
-    if (status && !ACCESS_STATUSES.has(status)) continue;
     const id = String(membership?.company?.id || '').trim();
     if (!id) continue;
     const current = companies.get(id) || {
@@ -210,13 +208,19 @@ function membershipCompanies(memberships) {
       route: String(membership?.company?.route || '') || null,
       products: new Map(),
       statuses: new Set(),
+      memberships: 0,
     };
     const productId = String(membership?.product?.id || '').trim();
     if (productId) current.products.set(productId, String(membership?.product?.title || 'Whop product'));
     if (status) current.statuses.add(status);
+    current.memberships += 1;
     companies.set(id, current);
   }
-  return [...companies.values()].slice(0, MAX_COMPANIES);
+  const values = [...companies.values()];
+  if (values.length > MAX_COMPANIES) {
+    throw new HttpError(422, `Whop returned more than ${MAX_COMPANIES} joined companies. Narrow the connected account before continuing.`);
+  }
+  return values;
 }
 
 function forumExperience(forum, company) {
@@ -360,6 +364,7 @@ export async function discoverWhopSources(session) {
         route: company.route,
         products: [...company.products].map(([id, title]) => ({ id, title })),
         statuses: [...company.statuses],
+        memberships: company.memberships,
       },
       defaultKey: defaultGroup?.key || null,
       builtIn: Boolean(defaultGroup),
