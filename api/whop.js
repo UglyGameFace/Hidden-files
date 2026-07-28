@@ -6,6 +6,7 @@ import {
   requireAuth,
   requireSameOrigin,
 } from '../server/deal-desk.js';
+import { verifyWhopAttachments } from '../server/whop-attachments.js';
 import {
   discoverWhopGuides,
   resolveWhopExperience,
@@ -130,10 +131,11 @@ async function handleImport(request) {
     throw new HttpError(422, 'A selected post is blocked by the formatting integrity check. Review the scan results.');
   }
 
+  const verifiedItems = await verifyWhopAttachments(session, selected);
   const result = await importWhopDrafts({
     category: body.category,
     rightsConfirmed: body.rightsConfirmed === true,
-    items: selected,
+    items: verifiedItems,
   });
   return attachCookie(json({
     ...result,
