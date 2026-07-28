@@ -1,9 +1,9 @@
 name: Export Lobby site template
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/export-lobby-template
+      - main
 
 permissions:
   contents: read
