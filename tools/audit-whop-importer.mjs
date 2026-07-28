@@ -26,6 +26,11 @@ const vercel = JSON.parse(read('vercel.json'));
 const discovery = read('server/whop-discovery.js');
 const importer = read('server/whop-import.js');
 const sourcePolicy = read('server/whop-source-policy.js');
+const envExample = read('.env.example');
+const docs = read('docs/WHOP_IMPORTER.md');
+const activeTask = read('ACTIVE_TASK.md');
+const productionOrigin = 'https://the-420-lobby-hacks.vercel.app';
+const productionCallback = `${productionOrigin}/api/whop-oauth-callback`;
 
 assert.ok(page.includes("import WhopImporter from '../components/WhopImporter.astro'"), 'The Control Center does not load the Whop importer.');
 assert.ok(page.includes('<WhopImporter />'), 'The Whop importer is not rendered on the owner page.');
@@ -36,14 +41,30 @@ assert.ok(component.includes('data-whop-approve-ready'), 'The bulk post approval
 assert.ok(component.includes('data-whop-disapprove-all'), 'The bulk post disapproval control is missing.');
 assert.ok(component.includes('data-whop-rights'), 'The republication-rights confirmation is missing.');
 assert.ok(component.includes('Everything imports as a hidden draft'), 'The draft-only import promise is missing.');
+assert.ok(component.includes('The 420 Lobby Hacks'), 'The owner workflow is not branded for The 420 Lobby Hacks.');
 
-assert.ok(client.includes('sniperplug-whop-decisions:'), 'Post decisions are not remembered on the device.');
+assert.ok(client.includes('lobby-hacks-whop-decisions:'), 'Post decisions are not remembered under the Lobby Hacks namespace.');
+assert.ok(!client.includes('sniperplug-whop-decisions:'), 'The old SniperPlug decision namespace still exists.');
 assert.ok(client.includes("setItemDecision(item.sourceKey, 'approved')"), 'Individual post approval is not wired.');
 assert.ok(client.includes("setItemDecision(item.sourceKey, 'disapproved')"), 'Individual post disapproval is not wired.');
 assert.ok(client.includes('sourceKeys'), 'The browser does not send approved source IDs.');
 assert.ok(!client.includes('items: selected'), 'The browser must not submit trusted post bodies for import.');
 assert.ok(client.includes("'/api/whop-source-decision'"), 'Source decisions are not persisted through the owner API.');
 assert.ok(client.includes("'/api/whop-import'"), 'Approved posts are not connected to the import endpoint.');
+
+for (const [name, content] of [
+  ['Whop importer component', component],
+  ['Whop importer client', client],
+  ['Whop import writer', importer],
+  ['Whop importer documentation', docs],
+  ['active-task record', activeTask],
+]) {
+  assert.ok(!content.includes('SniperPlug'), `${name} still contains stale SniperPlug wording.`);
+}
+assert.ok(envExample.includes(`PUBLIC_SITE_URL=${productionOrigin}`), 'The environment example does not target the production Lobby Hacks site.');
+assert.ok(envExample.includes(`WHOP_REDIRECT_URI=${productionCallback}`), 'The environment example does not use the exact production Whop callback.');
+assert.ok(docs.includes(productionOrigin), 'The importer documentation does not identify the production Lobby Hacks site.');
+assert.ok(docs.includes(productionCallback), 'The importer documentation does not include the exact production Whop callback.');
 
 assert.ok(sourcePolicy.includes("VALID_DECISIONS = new Set(['approved', 'disapproved'])"), 'Source decisions are not restricted to approve/disapprove.');
 assert.ok(sourcePolicy.includes("Object.freeze({ key: 'black-box', label: 'Black Box' })"), 'Black Box is not a default Whop group.');
@@ -128,7 +149,7 @@ for (const [source, action] of [
 ]) {
   assert.equal(rewrites.get(source), `/api/whop?action=${action}`, `${source} is not routed through the consolidated Whop function.`);
 }
-assert.ok(String(vercel.ignoreCommand || '').includes("src/data/whop-sources.json"), 'Source-only approval changes should skip a full Vercel rebuild.');
+assert.ok(String(vercel.ignoreCommand || '').includes('src/data/whop-sources.json'), 'Source-only approval changes should skip a full Vercel rebuild.');
 
 for (const obsolete of [
   'whop-discover.js',
@@ -157,6 +178,7 @@ for (const path of [
 }
 
 console.log('\nWHOP IMPORTER AUDIT PASSED\n');
+console.log('✓ The importer is locked to The 420 Lobby Hacks production URL and OAuth callback.');
 console.log('✓ Black Box and Hidden Files are default source suggestions, with explicit approval for every exact experience ID.');
 console.log('✓ Multiple forum experiences per group and additional approved groups remain individually manageable.');
 console.log('✓ Group and post approval/disapproval controls are visible, reversible, and enforced.');
