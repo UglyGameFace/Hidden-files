@@ -1,78 +1,64 @@
 # Active Task
 
 ## Task
-Build an authorized Whop-to-The-420-Lobby-Hacks forum-post importer for `https://the-420-lobby-hacks.vercel.app/` that preserves guide content and formatting exactly, uses the website's canonical category and method rules, prevents duplicates, and provides an easy draft-first approve/disapprove workflow.
+Finish the authorized Whop-to-The-420-Lobby-Hacks importer by replacing the live manual experience-ID-first workflow with automatic joined-group/forum discovery and complete source/post bulk actions, while preserving formatting, security, deduplication, canonical categories, and hidden-draft behavior.
 
 ## Status
-Implementation and repository cleanup are complete on `agent/whop-guide-importer` in draft PR #27. OAuth, forum discovery, exact-source and per-post decisions, formatting protection, deduplication, attachment review, hidden-draft imports, canonical category mapping, and Vercel-function consolidation pass the full repository production build. Live OAuth acceptance and the Vercel preview remain blocked by external configuration and the current Vercel build-rate limit, so the PR remains unmerged.
+The original importer from PR #27 is merged and live on `main`. Follow-up draft PR #28 contains the automatic discovery and bulk-action correction. Its full repository audit, Astro check, and production build passed on GitHub Actions run `30380893813`. The temporary validation workflow was removed after the green build. PR #28 remains unmerged pending the Whop/Vercel scope update and live acceptance test.
 
-## Scope
-- Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
-- Read only forum posts the authenticated Whop user can access through official Whop API endpoints.
-- Suggest Black Box and Hidden Files by default, while allowing another exact group only after explicit owner approval.
-- Provide clear, reversible Approve and Disapprove controls for exact group sources and individual posts.
-- Preserve Unicode, emoji, punctuation, paragraph spacing, Markdown hard breaks, headings, lists, tables, links, blockquotes, and fenced code without accidental rewriting.
-- Repair only deterministic transport defects; block ambiguous corruption, unsafe publishable HTML, dangerous links, or malformed code fences for review.
-- Read categories from `src/data/site-settings.json`; do not create a duplicate or hard-coded category registry.
-- Use the existing guide validation, automatic ordering, atomic GitHub write, status, Vercel publish, and responsive rendering paths.
-- Store every import as a hidden draft first and never feature or publish it automatically.
-- Track Whop source IDs and content fingerprints so reruns update changed drafts without creating duplicates.
+## Required workflow
+- Connect Whop through OAuth 2.1 + PKCE; never collect or store a Whop password.
+- Automatically list joined Whop companies and readable forum experiences after connection.
+- Recognize and prioritize Black Box and Hidden Files without requiring the owner to find `exp_...` IDs.
+- Keep the manual experience-ID field only under an Advanced fallback.
+- Allow selecting one forum, a whole group, all Black Box/Hidden Files forums, or any combination.
+- Provide source-level Approve Selected, Disapprove Selected, Clear Selection, group Approve All/Disapprove All, and individual forum controls.
+- Preserve existing post-level Approve, Disapprove, Undo, Approve All Ready, Disapprove All, and Reset Choices.
+- Store every import as a hidden, non-featured draft and never auto-publish.
+- Preserve Unicode, emoji, punctuation, paragraphs, Markdown hard breaks, headings, lists, tables, links, blockquotes, and fenced code.
+- Use the existing category registry, ordering, status, GitHub write, Vercel publish, and public draft-isolation paths.
 - Import only posts the owner created or has explicit permission to republish.
 
-## Findings
-- The original method save path lacked explicit Unicode-corruption, dangerous-link, code-fence-balance, and exact round-trip verification.
-- Existing Markdown normally preserved paragraphs, but there was no structural fingerprint to detect accidental paragraph collapse.
-- Unsafe-content scanning must ignore literal examples inside fenced, indented, and inline code.
-- Browser-submitted post bodies cannot be trusted; import requests must send IDs while the server re-fetches authoritative Whop posts.
-- Whop attachment URLs may be private or temporary, so attachments require verification and unsafe files must remain flagged inside hidden drafts.
-- Vercel Hobby direct-function limits required consolidating six browser-facing Whop routes into one function while keeping internal service modules separated.
-- The website target was temporarily misidentified as another project. The owner confirmed `https://the-420-lobby-hacks.vercel.app/` is the correct production site.
-- A hidden imported draft must be excluded at collection-load time on every public guide route, not merely hidden by client-side filtering.
-
-## Changes
-- Added shared guide-content integrity validation and exact serialize/parse round-trip verification.
-- Added encrypted HttpOnly Whop OAuth sessions, PKCE state protection, refresh-token rotation, disconnect/revoke handling, and forum-only scopes.
-- Added cursor-paginated forum-post discovery with exact source IDs and source metadata.
-- Added persistent exact-source Approve/Disapprove policy with Black Box and Hidden Files suggestions plus optional additional groups.
-- Added individual post Approve, Disapprove, Undo, Approve All, Disapprove All, exact preview, and visible decision counts.
-- Made the import endpoint accept only approved source IDs and re-fetch posts from Whop before writing.
-- Added attachment verification, review warnings, hidden-draft-only imports, deduplication, and atomic content/status/source-registry writes.
-- Consolidated Whop browser routes behind `api/whop.js` and stable Vercel rewrites.
-- Added permanent formatting, importer, and public-draft-isolation regressions to every check and production build.
-- Corrected the implementation target, production URL, callback documentation, attachment warnings, browser storage namespace, and owner-facing branding to The 420 Lobby Hacks.
+## Implementation
+- Added joined-membership discovery and company deduplication.
+- Added readable forum discovery per joined company.
+- Discards membership user/email fields server-side; only sanitized company, product-count, forum, and approval metadata reaches the browser.
+- Added `/api/whop-sources` through the existing consolidated `api/whop.js` Vercel function.
+- Added atomic bulk source-decision writes with a maximum of 100 exact forum sources per action.
+- Exact `exp_...` IDs still back every approval and server-side enforcement, but are hidden from the normal owner workflow.
+- Added responsive discovered-group cards, per-forum controls, group bulk controls, and page-wide selected-source controls.
+- Expanded OAuth scopes for automatic membership discovery:
+  `openid profile email forum:read member:basic:read member:email:read`
+- Existing authoritative post re-fetch, attachment review, formatting checks, deduplication, and hidden-draft writes remain unchanged.
 
 ## Validation
-- Official Whop OAuth, forum-post, experience, pagination, scope, and file-visibility contract check: passed against current Whop documentation.
-- Guide-content integrity regression: passed.
-- Source approval/disapproval and optional additional-group policy regression: passed.
-- Individual post Approve/Disapprove/Undo/bulk-decision regression: passed.
-- Authoritative server re-fetch and crafted-request rejection regression: passed.
-- Duplicate/update fingerprint and atomic draft-write regression: passed.
-- Public draft-isolation regression: passed for every Astro page loading the guide collection.
-- Existing repository audits: passed.
+- Automatic membership and forum discovery audit: passed.
+- Black Box and Hidden Files default-selection audit: passed.
+- Source-level individual, group, selected, and default-group bulk-action audits: passed.
+- Existing post-level bulk-action audit: passed.
+- Manual-ID advanced-fallback audit: passed.
+- Membership email non-persistence/non-exposure audit: passed.
+- Exact source approval enforcement and crafted-request rejection: passed.
+- Formatting integrity, duplicate/update, attachment, and public-draft-isolation audits: passed.
+- Every existing repository audit: passed.
 - JavaScript syntax validation: passed.
 - Astro check: passed.
-- Production build: passed on GitHub Actions run `30376426899` at commit `f0ec292e1cd97cf8ae02eb10bf8b2a3a973a6865`.
-- Direct Vercel API inventory: passed with 9 functions, below the 12-function Hobby limit.
-- Final pull-request mergeability/conflict check: passed after cleanup; branch is 73 commits ahead, 0 behind, and mergeable.
-- Vercel preview: externally blocked because the account returned its build-rate-limit response; no preview deployment was created for the final code.
-- Live OAuth/import acceptance: pending production Whop credentials and exact callback registration.
-- Final cleanup changed only the temporary workflow and this task record; no product or test source changed after the green production build.
+- Production build: passed on GitHub Actions run `30380893813`.
+- Temporary branch-only validation workflow: removed after the green build.
+
+## External steps before merge
+- In the Whop app, enable `member:basic:read` and `member:email:read` in addition to the existing identity and `forum:read` permissions.
+- Change production Vercel `WHOP_OAUTH_SCOPES` to:
+  `openid profile email forum:read member:basic:read member:email:read`
+- Redeploy PR #28 or merge it after the preview is ready.
+- In Control Center, disconnect Whop and reconnect once so the new OAuth token includes the expanded scopes.
+- Confirm Black Box and Hidden Files populate automatically, run one source bulk action, review posts, and create one hidden draft.
+- Republishing still requires ownership or explicit permission for the source posts.
 
 ## Cleanup
-- No second category registry, alternate guide store, or replacement publishing path was added.
-- Black Box and Hidden Files are suggestions, not an irreversible hard-coded lock; other exact sources require explicit approval.
-- The browser cannot submit trusted content bodies for import.
-- Existing guides, categories, status data, Control Center password behavior, and public design remain unchanged.
-- Redundant Whop API functions were removed; six browser routes share one permanent `api/whop.js` function.
-- The temporary branch-only validation workflow was deleted after the full production build passed.
-- No temporary debug files, generated inventories, workflow artifacts, or alternate publishing paths remain in the repository branch.
-
-## Blockers
-- Configure `WHOP_CLIENT_ID`, `WHOP_TOKEN_SECRET`, `WHOP_REDIRECT_URI`, and `WHOP_OAUTH_SCOPES` in the production Vercel project.
-- Register `https://the-420-lobby-hacks.vercel.app/api/whop-oauth-callback` in the Whop app.
-- Wait for the Vercel account build-rate limit to clear, then require a successful preview before merge.
-- Republishing requires ownership or explicit permission for the source posts.
+- No alternate category registry, content store, or publishing path was added.
+- No temporary workflow, placeholder file, generated inventory, or debug file remains on the branch.
+- The seven browser-facing Whop actions remain consolidated in one Vercel function, keeping the deployment below the Hobby direct-function limit.
 
 ## Backlog
-- Empty. Do not switch tasks or merge until production credentials, live OAuth acceptance, and a successful Vercel preview are complete.
+- Empty. Do not switch tasks until PR #28, expanded scopes, live automatic discovery, bulk actions, and one hidden-draft acceptance test are complete.
