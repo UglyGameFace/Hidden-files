@@ -1,6 +1,32 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)src/data/deal-status.json'",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)src/data/deal-status.json' ':(exclude)src/data/whop-sources.json'",
+  "rewrites": [
+    {
+      "source": "/api/whop-oauth-start",
+      "destination": "/api/whop?action=oauth-start"
+    },
+    {
+      "source": "/api/whop-oauth-callback",
+      "destination": "/api/whop?action=oauth-callback"
+    },
+    {
+      "source": "/api/whop-session",
+      "destination": "/api/whop?action=session"
+    },
+    {
+      "source": "/api/whop-source-decision",
+      "destination": "/api/whop?action=source-decision"
+    },
+    {
+      "source": "/api/whop-discover",
+      "destination": "/api/whop?action=discover"
+    },
+    {
+      "source": "/api/whop-import",
+      "destination": "/api/whop?action=import"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

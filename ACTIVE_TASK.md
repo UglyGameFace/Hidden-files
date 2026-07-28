@@ -1,56 +1,78 @@
 # Active Task
 
 ## Task
-Audit and harden The 420 Lobby for responsive content management across phones, tablets, and desktops, with special focus on adding, editing, hiding, removing, and reordering methods and categories without overlap, clipping, accidental data loss, or negative public-site changes.
+Build an authorized Whop-to-The-420-Lobby-Hacks forum-post importer for `https://the-420-lobby-hacks.vercel.app/` that preserves guide content and formatting exactly, uses the website's canonical category and method rules, prevents duplicates, and provides an easy draft-first approve/disapprove workflow.
 
 ## Status
-Completed, merged through PR #26, and deployed successfully to Vercel production.
+Implementation and repository cleanup are complete on `agent/whop-guide-importer` in draft PR #27. OAuth, forum discovery, exact-source and per-post decisions, formatting protection, deduplication, attachment review, hidden-draft imports, canonical category mapping, and Vercel-function consolidation pass the full repository production build. Live OAuth acceptance and the Vercel preview remain blocked by external configuration and the current Vercel build-rate limit, so the PR remains unmerged.
 
 ## Scope
-- Inspect public homepage, guide cards, category strips, sidebar/rail, mobile drawer, search/filter controls, guide pages, footer, and empty states at narrow phone, tablet portrait, tablet landscape, desktop, short viewport, zoom, and long-content conditions.
-- Inspect Control Center method/category creation, editing, hiding, expiring, and deletion paths for overflow, covered controls, stale state, ambiguous destructive behavior, and unsaved-change loss.
-- Ensure dynamic content additions cannot break grids, navigation, labels, cards, forms, dialogs, or public filtering.
-- Preserve all current methods, categories, status data, password behavior, copy, branding, colors, and unrelated functionality.
-- Add regression audits for each verified issue fixed, then require Astro check, production build, Vercel preview, merge, and production validation.
+- Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
+- Read only forum posts the authenticated Whop user can access through official Whop API endpoints.
+- Suggest Black Box and Hidden Files by default, while allowing another exact group only after explicit owner approval.
+- Provide clear, reversible Approve and Disapprove controls for exact group sources and individual posts.
+- Preserve Unicode, emoji, punctuation, paragraph spacing, Markdown hard breaks, headings, lists, tables, links, blockquotes, and fenced code without accidental rewriting.
+- Repair only deterministic transport defects; block ambiguous corruption, unsafe publishable HTML, dangerous links, or malformed code fences for review.
+- Read categories from `src/data/site-settings.json`; do not create a duplicate or hard-coded category registry.
+- Use the existing guide validation, automatic ordering, atomic GitHub write, status, Vercel publish, and responsive rendering paths.
+- Store every import as a hidden draft first and never feature or publish it automatically.
+- Track Whop source IDs and content fingerprints so reruns update changed drafts without creating duplicates.
+- Import only posts the owner created or has explicit permission to republish.
 
 ## Findings
-- The supplied 960 × 1536 Galaxy Tab portrait screenshot exposed a real tablet bug: the terminal used a closed `details` element while its only visible summary was hidden above the mobile breakpoint, leaving a blank bordered line in the reserved hero column.
-- The public category strip was hard-coded to three columns, so adding the fourth `Fast Cash` category forced a 3+1 layout with two empty cells on the next row.
-- Public filter buttons could contribute their full combined width to the desktop grid; a larger category registry could widen or clip the page instead of scrolling inside the filter surface.
-- Long dynamic category labels could compete with status badges inside cards.
-- The Control Center method category picker and preview were fixed to three columns rather than adapting to the available width and category count.
-- Method form changes had no unsaved-draft protection. Selecting another method, creating a new one, refreshing, locking, or leaving the page could silently discard typed content and pending category work.
-- Removal behavior was already reversible: methods use pause, draft, or confirmed expire actions, and categories use published visibility instead of direct deletion. No direct method/category delete control is exposed.
+- The original method save path lacked explicit Unicode-corruption, dangerous-link, code-fence-balance, and exact round-trip verification.
+- Existing Markdown normally preserved paragraphs, but there was no structural fingerprint to detect accidental paragraph collapse.
+- Unsafe-content scanning must ignore literal examples inside fenced, indented, and inline code.
+- Browser-submitted post bodies cannot be trusted; import requests must send IDs while the server re-fetches authoritative Whop posts.
+- Whop attachment URLs may be private or temporary, so attachments require verification and unsafe files must remain flagged inside hidden drafts.
+- Vercel Hobby direct-function limits required consolidating six browser-facing Whop routes into one function while keeping internal service modules separated.
+- The website target was temporarily misidentified as another project. The owner confirmed `https://the-420-lobby-hacks.vercel.app/` is the correct production site.
+- A hidden imported draft must be excluded at collection-load time on every public guide route, not merely hidden by client-side filtering.
 
 ## Changes
-- Replaced the responsive terminal's closed `details` dependency with a stable desktop/tablet panel and an accessible mobile toggle, eliminating the blank tablet line.
-- Added a dynamic category strip that auto-fits on tablet/desktop and becomes a contained horizontal scroller on phones.
-- Contained large filter registries inside their own horizontal scroll area without widening the page, while preserving the established tablet two-row layout.
-- Bounded long card labels while preserving readable status badges.
-- Made Control Center category pickers and preview tiles auto-fit their available space.
-- Added a visible method draft state and confirmation before any action that would discard unsaved method/category input.
-- Added save-failure retention messaging and browser-leave protection for method drafts.
-- Added a responsive content-safety audit to every check and production build.
+- Added shared guide-content integrity validation and exact serialize/parse round-trip verification.
+- Added encrypted HttpOnly Whop OAuth sessions, PKCE state protection, refresh-token rotation, disconnect/revoke handling, and forum-only scopes.
+- Added cursor-paginated forum-post discovery with exact source IDs and source metadata.
+- Added persistent exact-source Approve/Disapprove policy with Black Box and Hidden Files suggestions plus optional additional groups.
+- Added individual post Approve, Disapprove, Undo, Approve All, Disapprove All, exact preview, and visible decision counts.
+- Made the import endpoint accept only approved source IDs and re-fetch posts from Whop before writing.
+- Added attachment verification, review warnings, hidden-draft-only imports, deduplication, and atomic content/status/source-registry writes.
+- Consolidated Whop browser routes behind `api/whop.js` and stable Vercel rewrites.
+- Added permanent formatting, importer, and public-draft-isolation regressions to every check and production build.
+- Corrected the implementation target, production URL, callback documentation, attachment warnings, browser storage namespace, and owner-facing branding to The 420 Lobby Hacks.
 
 ## Validation
+- Official Whop OAuth, forum-post, experience, pagination, scope, and file-visibility contract check: passed against current Whop documentation.
+- Guide-content integrity regression: passed.
+- Source approval/disapproval and optional additional-group policy regression: passed.
+- Individual post Approve/Disapprove/Undo/bulk-decision regression: passed.
+- Authoritative server re-fetch and crafted-request rejection regression: passed.
+- Duplicate/update fingerprint and atomic draft-write regression: passed.
+- Public draft-isolation regression: passed for every Astro page loading the guide collection.
 - Existing repository audits: passed.
-- Responsive/content-safety audit: passed.
-- JavaScript/static validation: passed.
+- JavaScript syntax validation: passed.
 - Astro check: passed.
-- Production build: passed.
-- Vercel preview for PR #26: passed.
-- Changed-file inspection: passed; no guide content, category data, status data, password configuration, branding values, or public copy changed.
-- PR #26 merged with production implementation commit `2b04570205e573d48c42ad956ccedb4fa2cca1b7`.
-- Vercel production deployment for the merged implementation: passed.
+- Production build: passed on GitHub Actions run `30376426899` at commit `f0ec292e1cd97cf8ae02eb10bf8b2a3a973a6865`.
+- Direct Vercel API inventory: passed with 9 functions, below the 12-function Hobby limit.
+- Final pull-request mergeability/conflict check: passed after cleanup; branch is 73 commits ahead, 0 behind, and mergeable.
+- Vercel preview: externally blocked because the account returned its build-rate-limit response; no preview deployment was created for the final code.
+- Live OAuth/import acceptance: pending production Whop credentials and exact callback registration.
+- Final cleanup changed only the temporary workflow and this task record; no product or test source changed after the green production build.
 
 ## Cleanup
-- Public dynamic-layout safeguards are isolated in one loaded stylesheet; owner-only responsive/draft rules are isolated in one Control Center stylesheet.
-- The method draft runtime does not replace or duplicate the existing save, category, status, publishing, or authentication paths.
-- Existing methods, categories, status data, password behavior, copy, branding, colors, and unrelated features were not edited.
+- No second category registry, alternate guide store, or replacement publishing path was added.
+- Black Box and Hidden Files are suggestions, not an irreversible hard-coded lock; other exact sources require explicit approval.
+- The browser cannot submit trusted content bodies for import.
+- Existing guides, categories, status data, Control Center password behavior, and public design remain unchanged.
+- Redundant Whop API functions were removed; six browser routes share one permanent `api/whop.js` function.
+- The temporary branch-only validation workflow was deleted after the full production build passed.
+- No temporary debug files, generated inventories, workflow artifacts, or alternate publishing paths remain in the repository branch.
 
 ## Blockers
-- None in code, repository validation, preview, merge, or production deployment.
-- Password-gated owner interactions still require the owner password for a final physical-device acceptance pass.
+- Configure `WHOP_CLIENT_ID`, `WHOP_TOKEN_SECRET`, `WHOP_REDIRECT_URI`, and `WHOP_OAUTH_SCOPES` in the production Vercel project.
+- Register `https://the-420-lobby-hacks.vercel.app/api/whop-oauth-callback` in the Whop app.
+- Wait for the Vercel account build-rate limit to clear, then require a successful preview before merge.
+- Republishing requires ownership or explicit permission for the source posts.
 
 ## Backlog
-- Empty.
+- Empty. Do not switch tasks or merge until production credentials, live OAuth acceptance, and a successful Vercel preview are complete.
