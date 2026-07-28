@@ -7,7 +7,7 @@ import '../styles/whop-importer.css';
     <div>
       <span class="desk-kicker">Authorized post transfer</span>
       <h3>Import from Whop</h3>
-      <p>Connect through Whop, approve a group, review each post, then add approved posts as hidden The 420 Lobby Hacks drafts.</p>
+      <p>Connect once, choose Black Box, Hidden Files, or another joined group, then approve the posts that should become hidden drafts.</p>
     </div>
     <div class="whop-connection" data-whop-connection data-state="checking" role="status" aria-live="polite">
       <span aria-hidden="true"></span>
@@ -20,33 +20,56 @@ import '../styles/whop-importer.css';
     <button type="button" data-whop-disconnect hidden>Disconnect Whop</button>
   </div>
 
-  <div class="whop-default-sources" data-whop-source-options hidden>
-    <span>Default groups</span>
-    <div data-whop-source-option-list></div>
-    <small>Black Box and Hidden Files are the defaults. Another group can be approved later by scanning its experience ID.</small>
-  </div>
+  <section class="whop-source-browser" data-whop-source-browser hidden>
+    <header>
+      <div>
+        <span class="desk-kicker">Your joined groups</span>
+        <h3>Choose where to import from</h3>
+        <p data-whop-source-summary>Finding the Whop forums your connected account can read…</p>
+      </div>
+      <button type="button" data-whop-refresh-sources>Refresh groups</button>
+    </header>
 
-  <form class="whop-scan-form" data-whop-scan-form hidden>
-    <label class="desk-field desk-field-wide">
-      <span>Whop group experience ID or link</span>
-      <input name="source" placeholder="exp_xxxxxxxxxxxxxx or a link containing it" autocomplete="off" required />
-      <small>Paste the group’s <code>exp_...</code> experience ID. Unapproved groups stop at the approval screen before any posts are loaded.</small>
-    </label>
-    <button type="submit" class="desk-button desk-button-primary" data-whop-scan>Check group</button>
-  </form>
+    <div class="whop-source-toolbar">
+      <label><input type="checkbox" data-whop-select-defaults /> <span>Select every Black Box and Hidden Files forum</span></label>
+      <div>
+        <button type="button" class="whop-approve" data-whop-approve-selected disabled>Approve selected</button>
+        <button type="button" class="whop-disapprove" data-whop-disapprove-selected disabled>Disapprove selected</button>
+        <button type="button" data-whop-clear-source-selection disabled>Clear selection</button>
+      </div>
+    </div>
+
+    <div class="whop-group-list" data-whop-group-list></div>
+    <div class="whop-empty" data-whop-source-empty hidden>
+      <strong>No readable Whop forums found</strong>
+      <p>Reconnect after enabling the membership permissions, or use the advanced fallback below.</p>
+    </div>
+  </section>
+
+  <details class="whop-advanced-source" data-whop-advanced-source hidden>
+    <summary>Advanced fallback: paste a Whop experience ID or link</summary>
+    <form class="whop-scan-form" data-whop-scan-form>
+      <label class="desk-field desk-field-wide">
+        <span>Experience ID or link</span>
+        <input name="source" placeholder="exp_xxxxxxxxxxxxxx or a link containing it" autocomplete="off" />
+        <small>This is only a fallback when Whop cannot automatically list a forum.</small>
+      </label>
+      <button type="submit" class="desk-button desk-button-primary" data-whop-scan>Check forum</button>
+    </form>
+  </details>
 
   <div class="whop-scan-status" data-whop-scan-status role="status" aria-live="polite" hidden></div>
 
   <section class="whop-source-review" data-whop-source-review hidden>
     <div>
-      <span class="desk-kicker">Group permission</span>
-      <h3 data-whop-source-title>Whop group</h3>
-      <p data-whop-source-detail>Approve this exact group before scanning its posts.</p>
+      <span class="desk-kicker">Forum permission</span>
+      <h3 data-whop-source-title>Whop forum</h3>
+      <p data-whop-source-detail>Approve this forum before scanning its posts.</p>
     </div>
     <strong class="whop-decision-badge" data-whop-source-state data-state="pending">Needs decision</strong>
     <div class="whop-decision-actions">
-      <button type="button" class="whop-approve" data-whop-source-approve>Approve group</button>
-      <button type="button" class="whop-disapprove" data-whop-source-disapprove>Disapprove group</button>
+      <button type="button" class="whop-approve" data-whop-source-approve>Approve forum</button>
+      <button type="button" class="whop-disapprove" data-whop-source-disapprove>Disapprove forum</button>
     </div>
   </section>
 
@@ -73,7 +96,7 @@ import '../styles/whop-importer.css';
     </div>
 
     <div class="whop-guide-list" data-whop-guide-list></div>
-    <div class="whop-empty" data-whop-empty hidden><strong>No importable posts found</strong><p>Check the experience ID and your Whop permissions.</p></div>
+    <div class="whop-empty" data-whop-empty hidden><strong>No importable posts found</strong><p>This forum may be empty or your Whop access may not include its posts.</p></div>
 
     <footer>
       <p><strong data-whop-selected-count>0 approved for import</strong><span>Everything imports as a hidden draft. Nothing becomes public automatically.</span></p>
