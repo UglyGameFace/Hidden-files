@@ -189,7 +189,7 @@ export async function importWhopDrafts(input = {}) {
     readSiteSettings(),
     readWhopSourcePolicy(),
   ]);
-  if (!siteDocument.settings.categories?.[category]) throw new HttpError(422, 'Choose a category from the current SniperPlug category registry.');
+  if (!siteDocument.settings.categories?.[category]) throw new HttpError(422, 'Choose a category from the current The 420 Lobby Hacks category registry.');
   for (const item of items) assertApprovedWhopSource(sourcePolicy.registry, item.experienceId);
 
   const preparedItems = items.map((item) => ({ item, ...preparedSource(item), key: sourceKey(item) }));
