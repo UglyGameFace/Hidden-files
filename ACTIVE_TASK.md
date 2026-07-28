@@ -1,56 +1,61 @@
 # Active Task
 
 ## Task
-Audit and harden The 420 Lobby for responsive content management across phones, tablets, and desktops, with special focus on adding, editing, hiding, removing, and reordering methods and categories without overlap, clipping, accidental data loss, or negative public-site changes.
+Build an authorized Whop-to-SniperPlug guide importer that uses Whop OAuth, preserves guide content and formatting exactly, maps imports through SniperPlug's canonical category and method publishing rules, prevents duplicates, and publishes through a draft-first review flow.
 
 ## Status
-Completed, merged through PR #26, and deployed successfully to Vercel production.
+Active on `agent/whop-guide-importer`. The shared guide-format integrity boundary and regression audit are implemented; OAuth, Whop discovery/import, category mapping, draft review UI, duplicate tracking, and end-to-end deployment validation remain.
 
 ## Scope
-- Inspect public homepage, guide cards, category strips, sidebar/rail, mobile drawer, search/filter controls, guide pages, footer, and empty states at narrow phone, tablet portrait, tablet landscape, desktop, short viewport, zoom, and long-content conditions.
-- Inspect Control Center method/category creation, editing, hiding, expiring, and deletion paths for overflow, covered controls, stale state, ambiguous destructive behavior, and unsaved-change loss.
-- Ensure dynamic content additions cannot break grids, navigation, labels, cards, forms, dialogs, or public filtering.
-- Preserve all current methods, categories, status data, password behavior, copy, branding, colors, and unrelated functionality.
-- Add regression audits for each verified issue fixed, then require Astro check, production build, Vercel preview, merge, and production validation.
+- Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
+- Read only content the authenticated Whop user is authorized to access through official Whop API endpoints.
+- Import Whop course lessons and forum guide posts with cursor pagination, stable source identifiers, attachments, dates, and source metadata.
+- Preserve Unicode, emoji, punctuation, paragraph spacing, Markdown hard breaks, headings, lists, tables, links, blockquotes, and fenced code without accidental rewriting.
+- Repair only transport-level defects that can be corrected deterministically; block ambiguous corruption, unsafe publishable HTML, dangerous links, or malformed code fences for review.
+- Read categories from `src/data/site-settings.json`; do not create a duplicate or hard-coded category registry.
+- Use the existing guide validation, automatic ordering, atomic repository write, status, Vercel publish, and responsive rendering paths.
+- Store imported items as drafts first, show exact previews and integrity diagnostics, and require explicit approval before public publishing.
+- Track Whop source IDs and content fingerprints so reruns update changed guides without creating duplicates.
+- Import only guides the owner created or has explicit permission to republish.
 
 ## Findings
-- The supplied 960 × 1536 Galaxy Tab portrait screenshot exposed a real tablet bug: the terminal used a closed `details` element while its only visible summary was hidden above the mobile breakpoint, leaving a blank bordered line in the reserved hero column.
-- The public category strip was hard-coded to three columns, so adding the fourth `Fast Cash` category forced a 3+1 layout with two empty cells on the next row.
-- Public filter buttons could contribute their full combined width to the desktop grid; a larger category registry could widen or clip the page instead of scrolling inside the filter surface.
-- Long dynamic category labels could compete with status badges inside cards.
-- The Control Center method category picker and preview were fixed to three columns rather than adapting to the available width and category count.
-- Method form changes had no unsaved-draft protection. Selecting another method, creating a new one, refreshing, locking, or leaving the page could silently discard typed content and pending category work.
-- Removal behavior was already reversible: methods use pause, draft, or confirmed expire actions, and categories use published visibility instead of direct deletion. No direct method/category delete control is exposed.
+- The current method save path used a hand-written frontmatter parser and body trimming without explicit Unicode corruption, dangerous-link, code-fence balance, or exact round-trip verification.
+- Existing JSON-quoted frontmatter preserves valid Unicode correctly, but there was no regression proof for ZWJ emoji, combining accents, curly punctuation, non-Latin scripts, or Unicode keywords.
+- Existing Markdown saves preserve internal paragraphs in normal cases, but there was no structural fingerprint to detect accidental paragraph collapse or formatting changes.
+- Unsafe-content scanning must ignore literal examples inside fenced, indented, and inline code or legitimate technical guides would be rejected.
+- Whop's official API exposes course lessons and forum posts, and its OAuth flow requires OAuth 2.1 with PKCE. Access tokens expire and refresh tokens rotate, so token handling must update credentials atomically.
 
 ## Changes
-- Replaced the responsive terminal's closed `details` dependency with a stable desktop/tablet panel and an accessible mobile toggle, eliminating the blank tablet line.
-- Added a dynamic category strip that auto-fits on tablet/desktop and becomes a contained horizontal scroller on phones.
-- Contained large filter registries inside their own horizontal scroll area without widening the page, while preserving the established tablet two-row layout.
-- Bounded long card labels while preserving readable status badges.
-- Made Control Center category pickers and preview tiles auto-fit their available space.
-- Added a visible method draft state and confirmation before any action that would discard unsaved method/category input.
-- Added save-failure retention messaging and browser-leave protection for method drafts.
-- Added a responsive content-safety audit to every check and production build.
+- Added `server/guide-content-integrity.js` as the shared content boundary.
+- Added Unicode scalar validation and rejection of null/control corruption and replacement-character decoding failures.
+- Added deterministic repair reporting for UTF-8 BOMs, CRLF/CR line endings, Unicode line separators, and boundary-only blank lines.
+- Preserved all internal blank-line runs, two-space Markdown hard breaks, punctuation, Unicode sequences, and code content exactly.
+- Added balanced fenced-code validation and content fingerprints.
+- Added dangerous raw HTML and link rejection outside fenced, indented, and inline code examples.
+- Wired the real `api/deal-desk-save.js` path through preparation and exact serialize/parse round-trip verification before repository writes.
+- Added integrity diagnostics to successful save responses.
+- Added `tools/audit-guide-content-integrity.mjs` and required it in every audit, check, and production build.
 
 ## Validation
-- Existing repository audits: passed.
-- Responsive/content-safety audit: passed.
-- JavaScript/static validation: passed.
-- Astro check: passed.
-- Production build: passed.
-- Vercel preview for PR #26: passed.
-- Changed-file inspection: passed; no guide content, category data, status data, password configuration, branding values, or public copy changed.
-- PR #26 merged with production implementation commit `2b04570205e573d48c42ad956ccedb4fa2cca1b7`.
-- Vercel production deployment for the merged implementation: passed.
+- Static source inspection: passed for the existing save, frontmatter, category, ordering, and atomic write paths.
+- Official Whop OAuth/course/forum API documentation verification: passed.
+- Branch creation and changed-file conflict isolation: passed.
+- Local JavaScript syntax and targeted audit: pending reconstruction or connected CI.
+- Existing repository audits: pending connected CI.
+- Astro check: pending connected CI.
+- Production build: pending connected CI.
+- Vercel preview: pending draft PR.
+- End-to-end Whop OAuth/import and physical-device preview: pending implementation and owner credentials.
 
 ## Cleanup
-- Public dynamic-layout safeguards are isolated in one loaded stylesheet; owner-only responsive/draft rules are isolated in one Control Center stylesheet.
-- The method draft runtime does not replace or duplicate the existing save, category, status, publishing, or authentication paths.
-- Existing methods, categories, status data, password behavior, copy, branding, colors, and unrelated features were not edited.
+- No second category registry, alternate guide store, or replacement publishing path has been added.
+- Format protection is isolated in one server module and consumed by the existing save endpoint.
+- Literal code examples remain exempt from publishable HTML scanning; unsafe rendered content remains blocked.
+- Existing guide content, categories, password behavior, public copy, and visual design have not been changed.
 
 ## Blockers
-- None in code, repository validation, preview, merge, or production deployment.
-- Password-gated owner interactions still require the owner password for a final physical-device acceptance pass.
+- Whop OAuth app credentials and registered callback URL will be required for live OAuth acceptance testing after implementation.
+- Republishing requires ownership or explicit permission for the source guides.
 
 ## Backlog
-- Empty.
+- Empty. Do not switch tasks until the authorized Whop importer, draft review flow, validations, cleanup, PR preview, and production checks are complete.
