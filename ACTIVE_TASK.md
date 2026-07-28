@@ -54,7 +54,7 @@ Implementation and repository cleanup are complete on `agent/whop-guide-importer
 - Astro check: passed.
 - Production build: passed on GitHub Actions run `30376426899` at commit `f0ec292e1cd97cf8ae02eb10bf8b2a3a973a6865`.
 - Direct Vercel API inventory: passed with 9 functions, below the 12-function Hobby limit.
-- Pull-request mergeability/conflict check: passed before final cleanup; final check is pending on the cleanup commit.
+- Final pull-request mergeability/conflict check: passed after cleanup; branch is 73 commits ahead, 0 behind, and mergeable.
 - Vercel preview: externally blocked because the account returned its build-rate-limit response; no preview deployment was created for the final code.
 - Live OAuth/import acceptance: pending production Whop credentials and exact callback registration.
 - Final cleanup changed only the temporary workflow and this task record; no product or test source changed after the green production build.
