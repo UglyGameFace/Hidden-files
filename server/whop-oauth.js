@@ -7,14 +7,13 @@ import {
 import { HttpError } from './deal-desk.js';
 
 const OAUTH_BASE = 'https://api.whop.com/oauth';
-const API_BASE = 'https://api.whop.com/api/v1';
 const STATE_COOKIE = 'lobby_whop_oauth_state';
 const SESSION_COOKIE = 'lobby_whop_session';
 const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 20_000;
-const DEFAULT_SCOPES = 'openid profile email courses:read forum:read';
+const DEFAULT_SCOPES = 'openid profile email forum:read';
 
 function oauthSecret() {
   const secret = process.env.WHOP_TOKEN_SECRET
@@ -285,20 +284,6 @@ export async function revokeWhopSession(request) {
     }
   }
   return clearCookie(SESSION_COOKIE);
-}
-
-export async function whopApi(request, path, query = {}) {
-  const { session, setCookie } = await requireWhopSession(request);
-  const url = new URL(`${API_BASE}/${String(path || '').replace(/^\/+/, '')}`);
-  for (const [key, value] of Object.entries(query)) {
-    if (value === null || value === undefined || value === '') continue;
-    if (Array.isArray(value)) value.forEach((item) => url.searchParams.append(`${key}[]`, String(item)));
-    else url.searchParams.set(key, String(value));
-  }
-  const payload = await whopRequest(url, {
-    headers: { authorization: `Bearer ${session.accessToken}` },
-  });
-  return { payload, session, setCookie };
 }
 
 export function whopSessionSummary(session) {
