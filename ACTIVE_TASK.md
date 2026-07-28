@@ -4,7 +4,7 @@
 Build an authorized Whop-to-SniperPlug guide importer that uses Whop OAuth, preserves guide content and formatting exactly, maps imports through SniperPlug's canonical category and method publishing rules, prevents duplicates, and publishes through a draft-first review flow.
 
 ## Status
-Active on `agent/whop-guide-importer`. The shared guide-format integrity boundary and regression audit are implemented; OAuth, Whop discovery/import, category mapping, draft review UI, duplicate tracking, and end-to-end deployment validation remain.
+Active on `agent/whop-guide-importer` in draft PR #27. The shared guide-format integrity boundary, save-path integration, regression audit, compatibility cleanup, and full Vercel preview validation have passed; OAuth, Whop discovery/import, category mapping, draft review UI, duplicate tracking, and final end-to-end acceptance remain.
 
 ## Scope
 - Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
@@ -23,6 +23,7 @@ Active on `agent/whop-guide-importer`. The shared guide-format integrity boundar
 - Existing JSON-quoted frontmatter preserves valid Unicode correctly, but there was no regression proof for ZWJ emoji, combining accents, curly punctuation, non-Latin scripts, or Unicode keywords.
 - Existing Markdown saves preserve internal paragraphs in normal cases, but there was no structural fingerprint to detect accidental paragraph collapse or formatting changes.
 - Unsafe-content scanning must ignore literal examples inside fenced, indented, and inline code or legitimate technical guides would be rejected.
+- The first preview failure came from a stale automatic-order regression assertion that required the old one-line `validateGuide` call verbatim. The save implementation still preserved automatic ordering; the audit needed to verify the new prepared-body and server-owned-order guarantees together.
 - Whop's official API exposes course lessons and forum posts, and its OAuth flow requires OAuth 2.1 with PKCE. Access tokens expire and refresh tokens rotate, so token handling must update credentials atomically.
 
 ## Changes
@@ -35,22 +36,27 @@ Active on `agent/whop-guide-importer`. The shared guide-format integrity boundar
 - Wired the real `api/deal-desk-save.js` path through preparation and exact serialize/parse round-trip verification before repository writes.
 - Added integrity diagnostics to successful save responses.
 - Added `tools/audit-guide-content-integrity.mjs` and required it in every audit, check, and production build.
+- Updated the automatic-order regression audit to verify content preparation and server-owned order together instead of matching obsolete source formatting.
 
 ## Validation
 - Static source inspection: passed for the existing save, frontmatter, category, ordering, and atomic write paths.
 - Official Whop OAuth/course/forum API documentation verification: passed.
 - Branch creation and changed-file conflict isolation: passed.
-- Local JavaScript syntax and targeted audit: pending reconstruction or connected CI.
-- Existing repository audits: pending connected CI.
-- Astro check: pending connected CI.
-- Production build: pending connected CI.
-- Vercel preview: pending draft PR.
+- Reconstructed local JavaScript syntax validation: passed.
+- Reconstructed targeted guide-content integrity audit: passed.
+- Existing repository audits through Vercel: passed.
+- Automatic method order regression through Vercel: passed after compatibility cleanup.
+- Guide-content integrity regression through Vercel: passed.
+- Astro check: passed through Vercel preview.
+- Production build: passed through Vercel preview.
+- Vercel preview for draft PR #27 at commit `77a25dba52e4fa0b0c01d6f469d129b3c1a1573a`: passed.
 - End-to-end Whop OAuth/import and physical-device preview: pending implementation and owner credentials.
 
 ## Cleanup
 - No second category registry, alternate guide store, or replacement publishing path has been added.
 - Format protection is isolated in one server module and consumed by the existing save endpoint.
 - Literal code examples remain exempt from publishable HTML scanning; unsafe rendered content remains blocked.
+- The stale source-string assertion was integrated with the new execution path rather than bypassed or weakened.
 - Existing guide content, categories, password behavior, public copy, and visual design have not been changed.
 
 ## Blockers
