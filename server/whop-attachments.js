@@ -50,7 +50,7 @@ async function retrieveFile(session, id) {
     url,
     durable: visibility === 'public' && ready && Boolean(url),
     reviewReason: visibility === 'private'
-      ? 'This is a private Whop file with an expiring signed URL. Re-upload it to SniperPlug before publishing.'
+      ? 'This is a private Whop file with an expiring signed URL. Re-upload it to The 420 Lobby Hacks before publishing.'
       : !ready
         ? 'This Whop file is not ready yet. Re-scan later or upload it manually.'
         : !url
