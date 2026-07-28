@@ -91,6 +91,20 @@ import '../styles/whop-importer.css';
   </div>
 </section>
 
+<script is:inline>
+  (() => {
+    const mount = () => {
+      const importer = document.querySelector('[data-whop-importer]');
+      const methods = document.querySelector('[data-control-panel="methods"]');
+      const topbar = methods?.querySelector('.cc-methods-topbar');
+      if (!(importer instanceof HTMLElement) || !(methods instanceof HTMLElement)) return;
+      if (importer.parentElement !== methods) methods.insertBefore(importer, topbar?.nextSibling || methods.firstChild);
+      importer.hidden = false;
+    };
+    window.addEventListener('lobby-settings-loaded', mount);
+  })();
+</script>
+
 <script>
   import '../scripts/whop-importer.js';
 </script>
