@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 const BLOCKED_HTML_TAG = /<\s*\/?\s*(?:script|style|iframe|object|embed|form|input|button|textarea|select|option|link|meta|base)\b/i;
 const EVENT_HANDLER_ATTRIBUTE = /\son[a-z][a-z0-9_-]*\s*=/i;
 const UNSAFE_URL_ATTRIBUTE = /\b(?:href|src)\s*=\s*(["']?)\s*(?:javascript:|data:text\/html)/i;
+const UNSAFE_MARKDOWN_LINK = /!?\[[^\]]*\]\(\s*(?:javascript:|data:text\/html)/i;
 const DISALLOWED_CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 const REPLACEMENT_CHARACTER = /\uFFFD/;
 
@@ -88,6 +89,29 @@ function inspectFences(value) {
   return fenceCount;
 }
 
+function contentOutsideCode(value) {
+  const output = [];
+  let open = null;
+
+  for (const line of value.split('\n')) {
+    const fence = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) {
+      const marker = fence[1];
+      if (!open) open = { character: marker[0], length: marker.length };
+      else if (marker[0] === open.character && marker.length >= open.length && !fence[2].trim()) open = null;
+      output.push('');
+      continue;
+    }
+    if (open || /^(?: {4}|\t)/.test(line)) {
+      output.push('');
+      continue;
+    }
+    output.push(line.replace(/(`+)(.*?)\1/g, ''));
+  }
+
+  return output.join('\n');
+}
+
 function blankLineRuns(value) {
   const runs = [];
   let active = 0;
@@ -160,14 +184,21 @@ export function prepareGuideBody(value, options = {}) {
   if (!body.trim()) {
     throw new GuideContentIntegrityError(`${source} is empty.`, 'empty_content');
   }
-  if (BLOCKED_HTML_TAG.test(body) || EVENT_HANDLER_ATTRIBUTE.test(body) || UNSAFE_URL_ATTRIBUTE.test(body)) {
+
+  const fenceCount = inspectFences(body);
+  const safetyText = contentOutsideCode(body);
+  if (
+    BLOCKED_HTML_TAG.test(safetyText)
+    || EVENT_HANDLER_ATTRIBUTE.test(safetyText)
+    || UNSAFE_URL_ATTRIBUTE.test(safetyText)
+    || UNSAFE_MARKDOWN_LINK.test(safetyText)
+  ) {
     throw new GuideContentIntegrityError(
-      `${source} contains unsafe embedded HTML. Remove the unsafe element before publishing.`,
+      `${source} contains unsafe embedded HTML or a dangerous link. Remove it before publishing.`,
       'unsafe_html',
     );
   }
 
-  const fenceCount = inspectFences(body);
   const canonicalOriginal = trimBoundaryBlankLines(normalizeTransportText(original));
   if (body !== canonicalOriginal) {
     throw new GuideContentIntegrityError(
