@@ -211,7 +211,7 @@ export function prepareGuideBody(value, options = {}) {
   if (/^\uFEFF/.test(original)) repairs.push('removed_utf8_bom');
   if (/\r/.test(original)) repairs.push('normalized_line_endings');
   if (/[\u2028\u2029]/.test(original)) repairs.push('normalized_unicode_line_separators');
-  if (original !== trimBoundaryBlankLines(original)) repairs.push('trimmed_boundary_blank_lines');
+  if (transportNormalized !== body) repairs.push('trimmed_boundary_blank_lines');
 
   return {
     body,
