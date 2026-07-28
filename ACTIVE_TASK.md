@@ -4,7 +4,7 @@
 Build an authorized Whop-to-The-420-Lobby-Hacks forum-post importer for `https://the-420-lobby-hacks.vercel.app/` that preserves guide content and formatting exactly, uses the website's canonical category and method rules, prevents duplicates, and provides an easy draft-first approve/disapprove workflow.
 
 ## Status
-Active on `agent/whop-guide-importer` in reopened draft PR #27. The previous PR closure was based on the incorrect assumption that the target was SniperPlug; the owner confirmed this existing The 420 Lobby Hacks website is the correct target. OAuth, forum discovery, source/post decisions, formatting protection, deduplication, hidden-draft imports, attachment review, and Vercel-function consolidation are implemented. Branding correction and final validation are in progress.
+Active on `agent/whop-guide-importer` in reopened draft PR #27. The previous PR closure was based on the incorrect assumption that the target was another website project; the owner confirmed this existing The 420 Lobby Hacks website is the correct target. OAuth, forum discovery, source/post decisions, formatting protection, deduplication, hidden-draft imports, attachment review, and Vercel-function consolidation are implemented. Branding correction and final validation are in progress.
 
 ## Scope
 - Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
@@ -26,7 +26,7 @@ Active on `agent/whop-guide-importer` in reopened draft PR #27. The previous PR 
 - Browser-submitted post bodies cannot be trusted; import requests must send IDs while the server re-fetches authoritative Whop posts.
 - Whop attachment URLs may be private or temporary, so attachments require verification and unsafe files must remain flagged inside hidden drafts.
 - Vercel Hobby direct-function limits required consolidating six browser-facing Whop routes into one function while keeping internal service modules separated.
-- The website target was temporarily misidentified as SniperPlug. The owner confirmed `https://the-420-lobby-hacks.vercel.app/` is the correct production site.
+- The website target was temporarily misidentified as another project. The owner confirmed `https://the-420-lobby-hacks.vercel.app/` is the correct production site.
 
 ## Changes
 - Added shared guide-content integrity validation and exact serialize/parse round-trip verification.
