@@ -26,5 +26,25 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate importer and Astro build
         run: npm run build
-      - name: Validate Vercel packaging
-        run: npx --yes vercel@latest build --yes
+      - name: Capture Vercel packaging output
+        shell: bash
+        run: |
+          set +e
+          npx --yes vercel@latest build --yes > vercel-build.log 2>&1
+          echo "$?" > vercel-build.status
+          exit 0
+      - name: Upload Vercel packaging output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vercel-packaging-log
+          path: |
+            vercel-build.log
+            vercel-build.status
+          if-no-files-found: error
+          retention-days: 1
+      - name: Require Vercel packaging success
+        shell: bash
+        run: |
+          cat vercel-build.log
+          test "$(cat vercel-build.status)" = "0"
