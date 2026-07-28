@@ -104,16 +104,22 @@
   opacity: .48;
 }
 
-.whop-approve {
-  border-color: color-mix(in srgb, var(--lime) 45%, var(--line)) !important;
-  background: var(--lime-soft) !important;
-  color: var(--lime) !important;
+.whop-connect-actions .whop-approve,
+.whop-selection-actions .whop-approve,
+.whop-decision-actions .whop-approve,
+.whop-post-actions .whop-approve {
+  border-color: color-mix(in srgb, var(--lime) 45%, var(--line));
+  background: var(--lime-soft);
+  color: var(--lime);
 }
 
-.whop-disapprove {
-  border-color: rgba(255, 105, 97, .42) !important;
-  background: rgba(255, 105, 97, .08) !important;
-  color: #ffaaa5 !important;
+.whop-connect-actions .whop-disapprove,
+.whop-selection-actions .whop-disapprove,
+.whop-decision-actions .whop-disapprove,
+.whop-post-actions .whop-disapprove {
+  border-color: rgba(255, 105, 97, .42);
+  background: rgba(255, 105, 97, .08);
+  color: #ffaaa5;
 }
 
 .whop-default-sources {
