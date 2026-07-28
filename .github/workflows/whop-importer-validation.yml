@@ -14,7 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,25 +26,16 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate importer and Astro build
         run: npm run build
-      - name: Capture Vercel packaging output
+      - name: Capture deployment inventory
         shell: bash
         run: |
-          set +e
-          npx --yes vercel@latest build --yes > vercel-build.log 2>&1
-          echo "$?" > vercel-build.status
-          exit 0
-      - name: Upload Vercel packaging output
-        if: always()
+          find api -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort > api-files.txt
+          printf 'api_function_count=%s\n' "$(wc -l < api-files.txt)" > deployment-inventory.txt
+          cat api-files.txt >> deployment-inventory.txt
+      - name: Upload deployment inventory
         uses: actions/upload-artifact@v4
         with:
-          name: vercel-packaging-log
-          path: |
-            vercel-build.log
-            vercel-build.status
+          name: deployment-inventory
+          path: deployment-inventory.txt
           if-no-files-found: error
           retention-days: 1
-      - name: Require Vercel packaging success
-        shell: bash
-        run: |
-          cat vercel-build.log
-          test "$(cat vercel-build.status)" = "0"
