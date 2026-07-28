@@ -4,7 +4,7 @@
 Build an authorized Whop-to-The-420-Lobby-Hacks forum-post importer for `https://the-420-lobby-hacks.vercel.app/` that preserves guide content and formatting exactly, uses the website's canonical category and method rules, prevents duplicates, and provides an easy draft-first approve/disapprove workflow.
 
 ## Status
-Implementation is complete on `agent/whop-guide-importer` in draft PR #27. OAuth, forum discovery, exact-source and per-post decisions, formatting protection, deduplication, attachment review, hidden-draft imports, canonical category mapping, and Vercel-function consolidation are implemented and pass the full repository production build. Live OAuth acceptance and the Vercel preview remain blocked by external configuration and the current Vercel build-rate limit, so the PR must remain unmerged.
+Implementation and repository cleanup are complete on `agent/whop-guide-importer` in draft PR #27. OAuth, forum discovery, exact-source and per-post decisions, formatting protection, deduplication, attachment review, hidden-draft imports, canonical category mapping, and Vercel-function consolidation pass the full repository production build. Live OAuth acceptance and the Vercel preview remain blocked by external configuration and the current Vercel build-rate limit, so the PR remains unmerged.
 
 ## Scope
 - Use Whop OAuth 2.1 with PKCE; never collect or store a Whop password.
@@ -52,11 +52,12 @@ Implementation is complete on `agent/whop-guide-importer` in draft PR #27. OAuth
 - Existing repository audits: passed.
 - JavaScript syntax validation: passed.
 - Astro check: passed.
-- Production build: passed on GitHub Actions run `30376295296` at commit `2db121fdb968c58b30cecff111f3288b33cee1f6`.
+- Production build: passed on GitHub Actions run `30376426899` at commit `f0ec292e1cd97cf8ae02eb10bf8b2a3a973a6865`.
 - Direct Vercel API inventory: passed with 9 functions, below the 12-function Hobby limit.
-- Pull-request mergeability/conflict check: passed; PR #27 is currently mergeable.
-- Vercel preview: externally blocked because the account returned its build-rate-limit response; no preview deployment was created for the final commit.
+- Pull-request mergeability/conflict check: passed before final cleanup; final check is pending on the cleanup commit.
+- Vercel preview: externally blocked because the account returned its build-rate-limit response; no preview deployment was created for the final code.
 - Live OAuth/import acceptance: pending production Whop credentials and exact callback registration.
+- Final cleanup changed only the temporary workflow and this task record; no product or test source changed after the green production build.
 
 ## Cleanup
 - No second category registry, alternate guide store, or replacement publishing path was added.
@@ -64,7 +65,8 @@ Implementation is complete on `agent/whop-guide-importer` in draft PR #27. OAuth
 - The browser cannot submit trusted content bodies for import.
 - Existing guides, categories, status data, Control Center password behavior, and public design remain unchanged.
 - Redundant Whop API functions were removed; six browser routes share one permanent `api/whop.js` function.
-- Temporary validation workflow removal is the only remaining repository cleanup step.
+- The temporary branch-only validation workflow was deleted after the full production build passed.
+- No temporary debug files, generated inventories, workflow artifacts, or alternate publishing paths remain in the repository branch.
 
 ## Blockers
 - Configure `WHOP_CLIENT_ID`, `WHOP_TOKEN_SECRET`, `WHOP_REDIRECT_URI`, and `WHOP_OAUTH_SCOPES` in the production Vercel project.
@@ -73,4 +75,4 @@ Implementation is complete on `agent/whop-guide-importer` in draft PR #27. OAuth
 - Republishing requires ownership or explicit permission for the source posts.
 
 ## Backlog
-- Empty. Do not switch tasks or merge until cleanup, production credentials, live OAuth acceptance, and a successful Vercel preview are complete.
+- Empty. Do not switch tasks or merge until production credentials, live OAuth acceptance, and a successful Vercel preview are complete.
