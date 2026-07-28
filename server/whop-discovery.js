@@ -2,7 +2,9 @@ import { HttpError } from './deal-desk.js';
 import { prepareGuideBody } from './guide-content-integrity.js';
 import {
   assertApprovedWhopSource,
+  normalizeWhopGroupName,
   readWhopSourcePolicy,
+  WHOP_DEFAULT_GROUPS,
   whopExperienceId,
   whopSourceDecision,
   whopSourceOptions,
@@ -13,6 +15,9 @@ const REQUEST_TIMEOUT_MS = 20_000;
 const PAGE_SIZE = 50;
 const MAX_PAGES = 100;
 const MAX_ITEMS = 1000;
+const MAX_COMPANIES = 100;
+const SOURCE_CONCURRENCY = 5;
+const ACCESS_STATUSES = new Set(['trialing', 'active', 'past_due', 'completed', 'canceling']);
 
 function plainExcerpt(value, limit = 240) {
   return String(value || '')
@@ -44,7 +49,11 @@ async function requestWhop(session, path, query = {}) {
   const url = new URL(`${API_BASE}/${String(path || '').replace(/^\/+/, '')}`);
   for (const [key, value] of Object.entries(query)) {
     if (value === null || value === undefined || value === '') continue;
-    url.searchParams.set(key, String(value));
+    if (Array.isArray(value)) {
+      for (const item of value) url.searchParams.append(key, String(item));
+    } else {
+      url.searchParams.set(key, String(value));
+    }
   }
 
   const controller = new AbortController();
@@ -58,7 +67,7 @@ async function requestWhop(session, path, query = {}) {
     });
   } catch (error) {
     if (controller.signal.aborted || error?.name === 'AbortError') {
-      throw new HttpError(504, 'Whop did not respond in time while scanning posts.');
+      throw new HttpError(504, 'Whop did not respond in time while loading content.');
     }
     throw error;
   } finally {
@@ -76,9 +85,11 @@ async function requestWhop(session, path, query = {}) {
   return payload;
 }
 
-async function allPages(session, path, query) {
+async function allPages(session, path, query, options = {}) {
   const items = [];
   let after = '';
+  const label = String(options.label || 'items');
+  const maxItems = Math.min(MAX_ITEMS, Math.max(1, Number(options.maxItems) || MAX_ITEMS));
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const payload = await requestWhop(session, path, {
       ...query,
@@ -87,13 +98,27 @@ async function allPages(session, path, query) {
     });
     const data = Array.isArray(payload?.data) ? payload.data : [];
     items.push(...data);
-    if (items.length > MAX_ITEMS) throw new HttpError(422, `That Whop group contains more than ${MAX_ITEMS} posts. Narrow the source before importing.`);
+    if (items.length > maxItems) throw new HttpError(422, `Whop returned more than ${maxItems} ${label}. Narrow the request before continuing.`);
     if (!payload?.page_info?.has_next_page) return items;
     const next = String(payload?.page_info?.end_cursor || '');
     if (!next || next === after) throw new HttpError(502, 'Whop returned an invalid pagination cursor.');
     after = next;
   }
   throw new HttpError(502, 'Whop pagination exceeded the safe page limit.');
+}
+
+async function mapConcurrent(values, mapper, concurrency = SOURCE_CONCURRENCY) {
+  const output = new Array(values.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < values.length) {
+      const index = cursor;
+      cursor += 1;
+      output[index] = await mapper(values[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, Math.max(1, values.length)) }, () => worker()));
+  return output;
 }
 
 function experienceSummary(experience, fallbackId) {
@@ -167,9 +192,128 @@ function normalizeForumPost(post, experience) {
   }
 }
 
+function builtInGroup(companyTitle) {
+  const normalized = normalizeWhopGroupName(companyTitle);
+  return WHOP_DEFAULT_GROUPS.find((group) => normalizeWhopGroupName(group.label) === normalized) || null;
+}
+
+function membershipCompanies(memberships) {
+  const companies = new Map();
+  for (const membership of memberships) {
+    const status = String(membership?.status || '').toLowerCase();
+    if (status && !ACCESS_STATUSES.has(status)) continue;
+    const id = String(membership?.company?.id || '').trim();
+    if (!id) continue;
+    const current = companies.get(id) || {
+      id,
+      title: String(membership?.company?.title || 'Whop group'),
+      route: String(membership?.company?.route || '') || null,
+      products: new Map(),
+      statuses: new Set(),
+    };
+    const productId = String(membership?.product?.id || '').trim();
+    if (productId) current.products.set(productId, String(membership?.product?.title || 'Whop product'));
+    if (status) current.statuses.add(status);
+    companies.set(id, current);
+  }
+  return [...companies.values()].slice(0, MAX_COMPANIES);
+}
+
+function forumExperience(forum, company) {
+  const id = whopExperienceId(forum?.experience?.id || forum?.id);
+  if (!id) return null;
+  return {
+    id,
+    name: String(forum?.experience?.name || forum?.name || 'Forum'),
+    is_public: Boolean(forum?.experience?.is_public),
+    company: {
+      id: company.id,
+      title: company.title,
+      route: company.route,
+    },
+    app: {
+      id: null,
+      name: 'Forums',
+    },
+  };
+}
+
+export async function discoverWhopSources(session) {
+  let memberships;
+  try {
+    memberships = await allPages(session, 'memberships', {}, { label: 'memberships', maxItems: MAX_ITEMS });
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 403) {
+      throw new HttpError(403, 'Reconnect Whop after enabling member:basic:read and member:email:read so joined groups can be discovered automatically.');
+    }
+    throw error;
+  }
+
+  const companies = membershipCompanies(memberships);
+  const policy = await readWhopSourcePolicy();
+  const results = await mapConcurrent(companies, async (company) => {
+    try {
+      const forums = await allPages(session, 'forums', { company_id: company.id }, { label: 'forums', maxItems: 250 });
+      const sources = forums
+        .map((forum) => forumExperience(forum, company))
+        .filter(Boolean)
+        .map((experience) => ({
+          experience: experienceSummary(experience, experience.id),
+          source: whopSourceDecision(experience, experience.id, policy.registry),
+        }));
+      return { company, sources, error: null };
+    } catch (error) {
+      if (error instanceof HttpError && [403, 404].includes(error.status)) {
+        return { company, sources: [], error: 'No readable forum experiences were returned for this membership.' };
+      }
+      return { company, sources: [], error: String(error?.message || 'Whop forum discovery failed.') };
+    }
+  });
+
+  const groups = results.map(({ company, sources, error }) => {
+    const defaultGroup = builtInGroup(company.title);
+    return {
+      company: {
+        id: company.id,
+        title: company.title,
+        route: company.route,
+        products: [...company.products].map(([id, title]) => ({ id, title })),
+        statuses: [...company.statuses],
+      },
+      defaultKey: defaultGroup?.key || null,
+      builtIn: Boolean(defaultGroup),
+      sources,
+      error,
+    };
+  }).filter((group) => group.sources.length || group.builtIn || group.error);
+
+  const priority = new Map(WHOP_DEFAULT_GROUPS.map((group, index) => [group.key, index]));
+  groups.sort((left, right) => {
+    const leftRank = left.defaultKey ? priority.get(left.defaultKey) ?? 50 : 100;
+    const rightRank = right.defaultKey ? priority.get(right.defaultKey) ?? 50 : 100;
+    return leftRank - rightRank || left.company.title.localeCompare(right.company.title);
+  });
+
+  const sources = groups.flatMap((group) => group.sources);
+  return {
+    groups,
+    sources,
+    sourceOptions: whopSourceOptions(policy.registry),
+    counts: {
+      memberships: memberships.length,
+      groups: groups.length,
+      forums: sources.length,
+      builtInGroups: groups.filter((group) => group.builtIn).length,
+      approved: sources.filter((entry) => entry.source.decision === 'approved').length,
+      disapproved: sources.filter((entry) => entry.source.decision === 'disapproved').length,
+      pending: sources.filter((entry) => entry.source.decision === 'pending').length,
+    },
+  };
+}
+
 export async function resolveWhopExperience(session, input = {}) {
   const experienceId = whopExperienceId(input.experienceId || input.source);
-  if (!experienceId) throw new HttpError(422, 'Paste a Whop experience ID beginning with exp_.');
+  if (!experienceId) throw new HttpError(422, 'Choose a discovered Whop forum or paste an experience ID beginning with exp_.');
   const experience = await requestWhop(session, `experiences/${encodeURIComponent(experienceId)}`);
   return { experience, experienceId };
 }
@@ -193,7 +337,7 @@ export async function discoverWhopGuides(session, input = {}) {
   }
 
   assertApprovedWhopSource(policy.registry, experienceId);
-  const posts = await allPages(session, 'forum_posts', { experience_id: experienceId });
+  const posts = await allPages(session, 'forum_posts', { experience_id: experienceId }, { label: 'posts', maxItems: MAX_ITEMS });
   const items = posts
     .filter((post) => !post?.parent_id)
     .map((post) => normalizeForumPost(post, summary));
